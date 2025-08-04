@@ -30,3 +30,19 @@ training:
 
 # Random seed for reproducibility
 random_seed: 42
+
+# Data validation configuration
+validation:
+  report_output_dir: "reports"
+  zscore_threshold: 3.0
+  contamination: 0.1 # For isolation forest
+  required_columns:
+    - "EventDateTime"
+    - "DeviceMode"
+    - "BolusType"
+    - "Basal"
+    - "CorrectionDelivered"
+    - "TotalBolusInsulinDelivered"
+    - "FoodDelivered"
+    - "CarbSize"
+    - "CGM"
