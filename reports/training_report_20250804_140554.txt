@@ -1,0 +1,33 @@
+============================================================
+TRAINING SUMMARY REPORT
+============================================================
+
+Training Duration: 0:00:07.275811
+Total Epochs: 5
+Training Samples: 80
+Validation Samples: 20
+
+BEST PERFORMANCE:
+Best val_loss: 13280.676758
+Best Epoch: 4
+
+FINAL METRICS:
+loss: 14583.857422
+mae: 118.220360
+mse: 14583.690430
+rmse: 120.762955
+mard: 97.103043
+tir_accuracy: 0.025000
+val_loss: 13280.676758
+val_mae: 112.437706
+val_mse: 13280.504883
+val_rmse: 115.241074
+val_mard: 95.823303
+val_tir_accuracy: 0.000000
+
+TIMING STATISTICS:
+Average Epoch Time: 1.36 seconds
+Total Training Time: 6.79 seconds
+Samples per Second: 59
+
+============================================================
