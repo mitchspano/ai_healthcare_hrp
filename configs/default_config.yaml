@@ -128,3 +128,12 @@ output:
   base_dir: "outputs" # Base directory for all outputs
   save_intermediate: true # Save intermediate results
   cleanup_temp: true # Clean up temporary files
+
+# Model persistence configuration
+model_persistence:
+  base_dir: "models" # Base directory for model artifacts
+  max_versions_per_model: 5 # Maximum number of versions to keep per model
+  auto_cleanup: true # Automatically clean up old versions
+  save_format: "keras" # Model save format (keras, h5, saved_model)
+  compression: true # Enable compression for saved models
+  include_training_history: true # Include training history in metadata
