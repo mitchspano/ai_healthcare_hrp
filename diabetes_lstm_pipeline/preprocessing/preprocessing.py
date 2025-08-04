@@ -95,12 +95,32 @@ class MissingValueHandler:
                 )
 
             elif strategy == "median":
-                median_value = df_processed[column].median()
-                df_processed[column] = df_processed[column].fillna(median_value)
+                # Check if column is numeric before calculating median
+                if pd.api.types.is_numeric_dtype(df_processed[column]):
+                    median_value = df_processed[column].median()
+                    df_processed[column] = df_processed[column].fillna(median_value)
+                else:
+                    # For non-numeric columns, use mode (most frequent value)
+                    mode_value = (
+                        df_processed[column].mode().iloc[0]
+                        if not df_processed[column].mode().empty
+                        else "Unknown"
+                    )
+                    df_processed[column] = df_processed[column].fillna(mode_value)
 
             elif strategy == "mean":
-                mean_value = df_processed[column].mean()
-                df_processed[column] = df_processed[column].fillna(mean_value)
+                # Check if column is numeric before calculating mean
+                if pd.api.types.is_numeric_dtype(df_processed[column]):
+                    mean_value = df_processed[column].mean()
+                    df_processed[column] = df_processed[column].fillna(mean_value)
+                else:
+                    # For non-numeric columns, use mode (most frequent value)
+                    mode_value = (
+                        df_processed[column].mode().iloc[0]
+                        if not df_processed[column].mode().empty
+                        else "Unknown"
+                    )
+                    df_processed[column] = df_processed[column].fillna(mode_value)
 
             elif strategy == "zero_fill":
                 df_processed[column] = df_processed[column].fillna(0)

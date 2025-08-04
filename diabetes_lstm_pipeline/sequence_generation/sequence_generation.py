@@ -827,10 +827,17 @@ class TimeSeriesResampler:
                 col.lower() in ["devicemode", "bolustype"]
                 or "mode" in col.lower()
                 or "type" in col.lower()
+                or "description" in col.lower()
+                or "serial" in col.lower()
+                or "device" in col.lower()
+                or "tandem" in col.lower()
             ):
                 agg_methods[col] = "first"  # String columns - take first value
+            elif col.startswith("Unnamed:"):
+                agg_methods[col] = "first"  # Handle unnamed columns
             else:
-                agg_methods[col] = "mean"  # Default to mean for other numeric columns
+                # Default to first for unknown columns to avoid aggregation errors
+                agg_methods[col] = "first"
 
         return agg_methods
 

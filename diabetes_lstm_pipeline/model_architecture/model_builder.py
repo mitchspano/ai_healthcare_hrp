@@ -252,7 +252,7 @@ class LSTMModelBuilder:
             ),
             "layers": [],
             "input_shape": model.input_shape,
-            "output_shape": model.output_shape,
+            "output_shape": getattr(model, "output_shape", None),
             "optimizer": (
                 model.optimizer.__class__.__name__
                 if hasattr(model, "optimizer")
@@ -268,7 +268,7 @@ class LSTMModelBuilder:
             layer_info = {
                 "name": layer.name,
                 "type": layer.__class__.__name__,
-                "output_shape": layer.output_shape,
+                "output_shape": getattr(layer, "output_shape", None),
                 "params": layer.count_params(),
             }
 

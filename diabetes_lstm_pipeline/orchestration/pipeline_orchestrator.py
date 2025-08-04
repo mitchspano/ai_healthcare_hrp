@@ -104,16 +104,20 @@ class PipelineOrchestrator:
             # Evaluation
             evaluation_config = self.config.get("evaluation", {})
             self.clinical_metrics = ClinicalMetrics(evaluation_config)
-            self.visualization_generator = VisualizationGenerator(evaluation_config)
+            self.visualization_generator = VisualizationGenerator(
+                evaluation_config.get("metrics_output_dir", "reports")
+            )
 
             # Model persistence
-            persistence_config = self.config.get("model_persistence", {})
-            self.model_persistence = ModelPersistence(persistence_config)
+            self.model_persistence = ModelPersistence(self.config.get_all())
 
             self.logger.info("All pipeline components initialized successfully")
 
         except Exception as e:
             self.logger.error(f"Failed to initialize pipeline components: {e}")
+            import traceback
+
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     def run_pipeline(
@@ -339,16 +343,11 @@ class PipelineOrchestrator:
         """Execute data acquisition stage."""
         progress_callback(10)
 
-        # Download dataset
-        dataset_path = self.data_acquisition.download_dataset()
-        progress_callback(40)
+        # Check if force download is configured
+        force_download = self.config.get("data.force_download", False)
 
-        # Extract dataset
-        extracted_path = self.data_acquisition.extract_dataset(dataset_path)
-        progress_callback(70)
-
-        # Load dataset
-        dataset = self.data_acquisition.load_dataset(extracted_path)
+        # Run the complete data acquisition pipeline
+        dataset = self.data_acquisition.run_pipeline(force_download=force_download)
         progress_callback(100)
 
         return dataset
@@ -361,16 +360,10 @@ class PipelineOrchestrator:
 
         progress_callback(20)
 
-        # Validate schema
-        validation_result = self.data_validator.validate_schema(dataset)
-        progress_callback(50)
-
-        # Assess quality
-        quality_report = self.data_validator.assess_quality(dataset)
-        progress_callback(80)
-
-        # Detect outliers
-        outlier_report = self.data_validator.detect_outliers(dataset)
+        # Run comprehensive validation
+        validation_result, quality_report, outlier_report = (
+            self.data_validator.validate_dataset(dataset)
+        )
         progress_callback(100)
 
         return {
@@ -385,20 +378,8 @@ class PipelineOrchestrator:
 
         progress_callback(10)
 
-        # Handle missing values
-        dataset = self.preprocessor.handle_missing_values(dataset)
-        progress_callback(30)
-
-        # Treat outliers
-        dataset = self.preprocessor.treat_outliers(dataset)
-        progress_callback(60)
-
-        # Clean data
-        dataset = self.preprocessor.clean_data(dataset)
-        progress_callback(80)
-
-        # Resample time series
-        dataset = self.preprocessor.resample_timeseries(dataset)
+        # Run the complete preprocessing pipeline
+        dataset, preprocessing_stats = self.preprocessor.preprocess(dataset)
         progress_callback(100)
 
         return dataset
@@ -411,24 +392,8 @@ class PipelineOrchestrator:
 
         progress_callback(10)
 
-        # Extract temporal features
-        dataset = self.feature_engineer.extract_temporal_features(dataset)
-        progress_callback(30)
-
-        # Extract insulin features
-        dataset = self.feature_engineer.extract_insulin_features(dataset)
-        progress_callback(50)
-
-        # Extract glucose features
-        dataset = self.feature_engineer.extract_glucose_features(dataset)
-        progress_callback(70)
-
-        # Generate lag features
-        dataset = self.feature_engineer.generate_lag_features(dataset)
-        progress_callback(90)
-
-        # Scale features
-        dataset = self.feature_engineer.scale_features(dataset)
+        # Run the complete feature engineering pipeline
+        dataset = self.feature_engineer.engineer_features(dataset, fit_scaler=True)
         progress_callback(100)
 
         return dataset
@@ -441,22 +406,15 @@ class PipelineOrchestrator:
 
         progress_callback(20)
 
-        # Generate sequences
-        sequences = self.sequence_generator.generate_sequences(dataset)
-        progress_callback(60)
-
-        # Split sequences
-        train_val_test = self.sequence_generator.split_sequences(sequences)
-        progress_callback(90)
-
-        # Validate sequences
-        validation_result = self.sequence_generator.validate_sequences(sequences)
+        # Generate sequences using the correct method
+        data_splits, metadata = (
+            self.sequence_generator.generate_sequences_from_dataframe(dataset)
+        )
         progress_callback(100)
 
         return {
-            "sequences": sequences,
-            "splits": train_val_test,
-            "validation": validation_result,
+            "splits": data_splits,
+            "metadata": metadata,
         }
 
     def _execute_model_building(
@@ -467,8 +425,15 @@ class PipelineOrchestrator:
 
         progress_callback(30)
 
+        # Get input shape from sequence metadata
+        sequence_info = sequence_data["metadata"]["sequence_info"]
+        input_shape = (
+            sequence_info["sequence_length_points"],
+            sequence_info["n_features"],
+        )
+
         # Build model architecture
-        model = self.model_builder.build_model(sequence_data["sequences"])
+        model = self.model_builder.build_model(input_shape)
         progress_callback(70)
 
         # Compile model
@@ -482,10 +447,20 @@ class PipelineOrchestrator:
         model = self.pipeline_data["model_building"]
         sequence_data = self.pipeline_data["sequence_generation"]
 
-        # Train model with progress updates
+        progress_callback(20)
+
+        # Extract training data from sequence splits
+        X_train, y_train = sequence_data["splits"]["train"]
+        X_val, y_val = sequence_data["splits"]["val"]
+
+        progress_callback(40)
+
+        # Train model
         training_result = self.trainer.train(
-            model, sequence_data["splits"], progress_callback=progress_callback
+            X_train, y_train, validation_data=(X_val, y_val)
         )
+
+        progress_callback(100)
 
         return training_result
 

@@ -51,6 +51,15 @@ class TemporalFeatureExtractor:
         df = df.copy()
         df["EventDateTime"] = pd.to_datetime(df["EventDateTime"])
 
+        # Remove rows with invalid EventDateTime values
+        initial_count = len(df)
+        df = df.dropna(subset=["EventDateTime"])
+        removed_count = initial_count - len(df)
+        if removed_count > 0:
+            logger.warning(
+                f"Removed {removed_count} rows with invalid EventDateTime values"
+            )
+
         # Basic time features
         df["hour_of_day"] = df["EventDateTime"].dt.hour
         df["day_of_week"] = df["EventDateTime"].dt.dayofweek
@@ -171,6 +180,16 @@ class InsulinFeatureExtractor:
 
         df = df.copy()
         df["EventDateTime"] = pd.to_datetime(df["EventDateTime"])
+
+        # Remove rows with invalid EventDateTime values
+        initial_count = len(df)
+        df = df.dropna(subset=["EventDateTime"])
+        removed_count = initial_count - len(df)
+        if removed_count > 0:
+            logger.warning(
+                f"Removed {removed_count} rows with invalid EventDateTime values"
+            )
+
         df = df.sort_values("EventDateTime")
 
         # Fill missing insulin values with 0
@@ -351,6 +370,16 @@ class GlucoseFeatureExtractor:
 
         df = df.copy()
         df["EventDateTime"] = pd.to_datetime(df["EventDateTime"])
+
+        # Remove rows with invalid EventDateTime values
+        initial_count = len(df)
+        df = df.dropna(subset=["EventDateTime"])
+        removed_count = initial_count - len(df)
+        if removed_count > 0:
+            logger.warning(
+                f"Removed {removed_count} rows with invalid EventDateTime values"
+            )
+
         df = df.sort_values("EventDateTime")
 
         # Fill missing CGM values using forward fill
@@ -656,6 +685,9 @@ class FeatureScaler:
 
         self.feature_columns = feature_columns
 
+        # Clean data before scaling - handle infinite and extreme values
+        df = self._clean_data_for_scaling(df, feature_columns)
+
         # Fit and transform each feature column
         for column in feature_columns:
             if column in df.columns:
@@ -666,6 +698,51 @@ class FeatureScaler:
         logger.info(
             f"Fitted and transformed {len(feature_columns)} features using {self.scaler_type} scaler"
         )
+        return df
+
+    def _clean_data_for_scaling(
+        self, df: pd.DataFrame, feature_columns: List[str]
+    ) -> pd.DataFrame:
+        """
+        Clean data by handling infinite and extreme values before scaling.
+
+        Args:
+            df: DataFrame to clean
+            feature_columns: List of feature columns to clean
+
+        Returns:
+            Cleaned DataFrame
+        """
+        df = df.copy()
+
+        for column in feature_columns:
+            if column in df.columns:
+                # Replace infinite values with NaN
+                df[column] = df[column].replace([np.inf, -np.inf], np.nan)
+
+                # Calculate robust statistics for outlier detection
+                Q1 = df[column].quantile(0.25)
+                Q3 = df[column].quantile(0.75)
+                IQR = Q3 - Q1
+
+                # Define bounds for outlier detection (using 3x IQR for more tolerance)
+                lower_bound = Q1 - 3 * IQR
+                upper_bound = Q3 + 3 * IQR
+
+                # Replace extreme outliers with bounds
+                df[column] = df[column].clip(lower=lower_bound, upper=upper_bound)
+
+                # Fill remaining NaN values with median
+                median_val = df[column].median()
+                df[column] = df[column].fillna(median_val)
+
+                # Final check for any remaining infinite values
+                if np.any(np.isinf(df[column])):
+                    logger.warning(
+                        f"Replacing remaining infinite values in {column} with median"
+                    )
+                    df[column] = df[column].replace([np.inf, -np.inf], median_val)
+
         return df
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -679,6 +756,9 @@ class FeatureScaler:
             DataFrame with scaled features
         """
         df = df.copy()
+
+        # Clean data before scaling - handle infinite and extreme values
+        df = self._clean_data_for_scaling(df, self.feature_columns)
 
         for column in self.feature_columns:
             if column in df.columns and column in self.scalers:

@@ -402,7 +402,7 @@ class TestDataLoader:
         df = loader.load_csv_file(sample_csv_file)
 
         assert len(df) == 3
-        assert len(df.columns) == 9
+        assert len(df.columns) == 10  # 9 original columns + participant_id
         assert "EventDateTime" in df.columns
         assert pd.api.types.is_datetime64_any_dtype(df["EventDateTime"])
         assert df["DeviceMode"].dtype.name == "category"
@@ -434,7 +434,7 @@ class TestDataLoader:
         combined_df = loader.load_dataset(tmp_path)
 
         assert len(combined_df) == 9  # 3 files × 3 rows each
-        assert len(combined_df.columns) == 9
+        assert len(combined_df.columns) == 10  # 9 original columns + participant_id
 
     def test_load_dataset_no_csv_files(self, loader, tmp_path):
         """Test loading dataset with no CSV files."""
@@ -613,6 +613,109 @@ class TestDataAcquisitionPipeline:
         assert info["local_file_exists"] is True
         assert info["local_file_size"] == len(b"dummy content")
         assert "local_file_path" in info
+
+    @patch.object(DataLoader, "load_dataset")
+    @patch.object(DataLoader, "validate_dataset_schema")
+    @patch.object(DataAcquisitionPipeline, "_is_dataset_available")
+    def test_run_pipeline_no_op_when_data_available(
+        self, mock_is_available, mock_validate, mock_load, pipeline, tmp_path
+    ):
+        """Test that pipeline performs no-op when data is already available."""
+        # Mock that dataset is available
+        mock_is_available.return_value = True
+
+        # Create mock data
+        mock_df = pd.DataFrame(
+            {
+                "EventDateTime": ["2023-01-01 00:00:00"],
+                "DeviceMode": ["Manual"],
+                "BolusType": ["Normal"],
+                "Basal": [1.0],
+                "CorrectionDelivered": [0.0],
+                "TotalBolusInsulinDelivered": [0.0],
+                "FoodDelivered": [0.0],
+                "CarbSize": [0.0],
+                "CGM": [120.0],
+            }
+        )
+
+        mock_load.return_value = mock_df
+        mock_validate.return_value = {"is_valid": True}
+
+        # Run pipeline with force_download=False (default)
+        result = pipeline.run_pipeline(force_download=False)
+
+        # Verify that _is_dataset_available was called
+        mock_is_available.assert_called_once()
+
+        # Verify that load_dataset was called (for existing data)
+        mock_load.assert_called_once()
+
+        # Verify that validation was called
+        mock_validate.assert_called_once_with(mock_df)
+
+        # Verify the result
+        assert result.equals(mock_df)
+
+    @patch.object(DataDownloader, "download_dataset")
+    @patch.object(DataDownloader, "verify_download_integrity")
+    @patch.object(DataExtractor, "extract_dataset")
+    @patch.object(DataLoader, "load_dataset")
+    @patch.object(DataLoader, "validate_dataset_schema")
+    @patch.object(DataAcquisitionPipeline, "_is_dataset_available")
+    def test_run_pipeline_force_download_ignores_existing_data(
+        self,
+        mock_is_available,
+        mock_validate,
+        mock_load,
+        mock_extract,
+        mock_verify,
+        mock_download,
+        pipeline,
+        tmp_path,
+    ):
+        """Test that force_download=True ignores existing data and downloads again."""
+        # Mock that dataset is available (but force_download=True should ignore this)
+        mock_is_available.return_value = True
+
+        # Create mock data
+        mock_df = pd.DataFrame(
+            {
+                "EventDateTime": ["2023-01-01 00:00:00"],
+                "DeviceMode": ["Manual"],
+                "BolusType": ["Normal"],
+                "Basal": [1.0],
+                "CorrectionDelivered": [0.0],
+                "TotalBolusInsulinDelivered": [0.0],
+                "FoodDelivered": [0.0],
+                "CarbSize": [0.0],
+                "CGM": [120.0],
+            }
+        )
+
+        mock_download.return_value = tmp_path / "test.zip"
+        mock_verify.return_value = True
+        mock_extract.return_value = tmp_path / "extracted"
+        mock_load.return_value = mock_df
+        mock_validate.return_value = {"is_valid": True}
+
+        # Run pipeline with force_download=True
+        result = pipeline.run_pipeline(force_download=True)
+
+        # Verify that _is_dataset_available was NOT called (force_download=True bypasses it)
+        mock_is_available.assert_not_called()
+
+        # Verify that download was called despite existing data
+        mock_download.assert_called_once_with(force_download=True)
+
+        # Verify that other steps were also called
+        mock_verify.assert_called_once()
+        mock_extract.assert_called_once()
+        mock_load.assert_called_once()
+        mock_validate.assert_called_once()
+
+        # Verify the result
+        assert result.equals(mock_df)
 
 
 if __name__ == "__main__":

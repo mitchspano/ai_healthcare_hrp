@@ -460,8 +460,13 @@ class DataLoader:
             # Parse datetime column
             df = self._parse_datetime(df)
 
+            # Extract participant ID from file path
+            # File path pattern: .../Subject X/Subject X.csv
+            participant_id = self._extract_participant_id(csv_path)
+            df["participant_id"] = participant_id
+
             # Log basic information
-            logger.info(f"Loaded {len(df)} rows and {len(df.columns)} columns")
+            logger.info(f"Loaded {csv_path.name}: {len(df)} rows")
             logger.info(f"Columns: {list(df.columns)}")
             logger.info(
                 f"Memory usage: {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
@@ -475,6 +480,32 @@ class DataLoader:
         except Exception as e:
             logger.error(f"Failed to load CSV file {csv_path}: {e}")
             raise
+
+    def _extract_participant_id(self, csv_path: Path) -> str:
+        """
+        Extract participant ID from CSV file path.
+
+        Args:
+            csv_path: Path to the CSV file
+
+        Returns:
+            Participant ID string
+        """
+        # Extract from path like: .../Subject X/Subject X.csv
+        path_parts = csv_path.parts
+
+        # Look for directory containing "Subject"
+        for part in path_parts:
+            if "Subject" in part:
+                # Extract the subject number
+                import re
+
+                match = re.search(r"Subject\s*(\d+)", part)
+                if match:
+                    return f"subject_{match.group(1)}"
+
+        # Fallback: use filename without extension
+        return csv_path.stem
 
     def load_dataset(self, data_dir: Optional[Path] = None) -> pd.DataFrame:
         """
@@ -601,6 +632,47 @@ class DataAcquisitionPipeline:
         self.extractor = DataExtractor(config)
         self.loader = DataLoader(config)
 
+    def _is_dataset_available(self) -> bool:
+        """
+        Check if the complete dataset is already available locally.
+
+        Returns:
+            True if dataset is available and ready to use
+        """
+        try:
+            # Check if extraction directory exists and contains expected files
+            extract_dir = Path(self.config.get("raw_data_path", "data/raw"))
+
+            # Look for CSV files in the extraction directory
+            csv_files = list(extract_dir.rglob("*.csv"))
+            if not csv_files:
+                logger.info("No CSV files found in extraction directory")
+                return False
+
+            # Check if at least one CSV file has the expected schema
+            for csv_file in csv_files:
+                try:
+                    df = pd.read_csv(csv_file, nrows=1)  # Read just header
+                    expected_cols = set(self.loader.expected_columns)
+                    actual_cols = set(df.columns)
+
+                    # Check if all required columns are present
+                    missing_cols = expected_cols - actual_cols
+                    if not missing_cols:  # Found a file with all required columns
+                        logger.info("Dataset is already available and ready to use")
+                        return True
+
+                except Exception as e:
+                    logger.info(f"Error checking CSV file {csv_file}: {e}")
+                    continue  # Try next file
+
+            logger.info("No CSV files found with required schema")
+            return False
+
+        except Exception as e:
+            logger.info(f"Error checking dataset availability: {e}")
+            return False
+
     def run_pipeline(self, force_download: bool = False) -> pd.DataFrame:
         """
         Run the complete data acquisition pipeline.
@@ -616,6 +688,31 @@ class DataAcquisitionPipeline:
         """
         logger.info("Starting data acquisition pipeline")
 
+        # Check if dataset is already available (unless force_download is True)
+        if not force_download and self._is_dataset_available():
+            logger.info("Dataset already available, skipping download and extraction")
+
+            # Just load the existing dataset
+            extract_dir = Path(self.config.get("raw_data_path", "data/raw"))
+            df = self.loader.load_dataset(extract_dir)
+
+            # Validate schema
+            validation_results = self.loader.validate_dataset_schema(df)
+
+            if not validation_results["is_valid"]:
+                logger.warning("Dataset schema validation failed:")
+                logger.warning(
+                    f"Missing columns: {validation_results['missing_columns']}"
+                )
+                logger.warning(
+                    f"Data type issues: {validation_results['data_type_issues']}"
+                )
+            else:
+                logger.info("Dataset schema validation passed")
+
+            logger.info("Data acquisition pipeline completed successfully (no-op)")
+            return df
+
         try:
             # Step 1: Download dataset
             zip_path = self.downloader.download_dataset(force_download=force_download)
@@ -627,10 +724,13 @@ class DataAcquisitionPipeline:
             # Step 3: Extract dataset
             extract_dir = self.extractor.extract_dataset(zip_path)
 
-            # Step 4: Load dataset
+            # Step 4: Handle nested archives if present
+            extract_dir = self._handle_nested_archives(extract_dir)
+
+            # Step 5: Load dataset
             df = self.loader.load_dataset(extract_dir)
 
-            # Step 5: Validate schema
+            # Step 6: Validate schema
             validation_results = self.loader.validate_dataset_schema(df)
 
             if not validation_results["is_valid"]:
@@ -650,6 +750,47 @@ class DataAcquisitionPipeline:
         except Exception as e:
             logger.error(f"Data acquisition pipeline failed: {e}")
             raise
+
+    def _handle_nested_archives(self, extract_dir: Path) -> Path:
+        """
+        Handle nested zip archives by extracting them recursively.
+
+        Args:
+            extract_dir: Directory that may contain nested archives
+
+        Returns:
+            Path to the directory containing the final extracted files
+        """
+        logger.info(f"Checking for nested archives in {extract_dir}")
+
+        # Look for zip files in the extracted directory
+        zip_files = list(extract_dir.rglob("*.zip"))
+
+        if not zip_files:
+            logger.info("No nested archives found")
+            return extract_dir
+
+        # Extract each nested zip file
+        for zip_file in zip_files:
+            logger.info(f"Found nested archive: {zip_file}")
+
+            # Extract to the same directory as the zip file
+            nested_extract_dir = zip_file.parent
+
+            try:
+                with zipfile.ZipFile(zip_file, "r") as zip_ref:
+                    zip_ref.extractall(nested_extract_dir)
+                    logger.info(f"Extracted nested archive to {nested_extract_dir}")
+
+                    # Remove the zip file after extraction
+                    zip_file.unlink()
+                    logger.info(f"Removed nested archive: {zip_file}")
+
+            except Exception as e:
+                logger.error(f"Failed to extract nested archive {zip_file}: {e}")
+                raise
+
+        return extract_dir
 
     def get_dataset_info(self) -> Dict[str, Any]:
         """

@@ -29,6 +29,7 @@ Examples:
   %(prog)s --resume logs/pipeline_status/status.json # Resume from saved status
   %(prog)s --config configs/custom_config.yaml --run # Use custom configuration
   %(prog)s --status                                 # Show pipeline status
+  %(prog)s --run --force-download                   # Force re-download of dataset
         """,
     )
 
@@ -125,6 +126,13 @@ Examples:
         help="Memory limit in GB for parallel processing",
     )
 
+    # Data acquisition options
+    parser.add_argument(
+        "--force-download",
+        action="store_true",
+        help="Force re-download of dataset even if already available",
+    )
+
     return parser
 
 
@@ -151,6 +159,10 @@ def setup_pipeline_config(args: argparse.Namespace) -> None:
 
     if args.memory_limit:
         config.set("parallel_processing.memory_limit_gb", args.memory_limit)
+
+    # Data acquisition options
+    if args.force_download:
+        config.set("data.force_download", True)
 
     # Setup logging
     logging_config = config.get("logging", {})
