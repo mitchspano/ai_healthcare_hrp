@@ -1,0 +1,233 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# ===== PROJECT SPECIFIC =====
+
+# Training artifacts
+checkpoints/
+models/checkpoints/
+*.keras
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.joblib
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Logs and reports
+logs/
+reports/
+test_reports/
+demo_reports/
+
+# Data files (if they contain sensitive or large data)
+data/processed/
+data/raw/
+
+# Configuration files with sensitive data
+configs/*.local.yaml
+configs/*.prod.yaml
+configs/secrets.yaml
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+
+# Backup files
+*.bak
+*.backup
+
+# Runtime files
+*.pid
+*.lock
+
+# Cache directories
+.cache/
+.kiro/
+
+# Training history and metrics
+training_history*.csv
+training_history.csv
+
+# Error logs
+errors/
+
+# Pipeline logs
+pipeline.log
+
+# Evaluation reports
+*_evaluation_*.txt
+training_report_*.txt
+test_evaluation_*.txt
+
+# Validation reports
+validation_report_*.txt
+preprocessing_integration_report.txt
+
+# Missing values and outlier reports
+missing_values_heatmap.png
+outlier_boxplots.png
+
+# Clinical evaluation reports
+clarke_error_grid.png
+parkes_error_grid_type1.png
+clinical_metrics_summary.png
+prediction_scatter.png
+residual_analysis.png
