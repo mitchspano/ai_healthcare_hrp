@@ -1,8 +1,0 @@
-{
-  "timestamp": "2025-08-04T14:51:56.320024",
-  "stage_name": "test_stage",
-  "error_type": "MemoryError",
-  "error_message": "Out of memory",
-  "traceback": "NoneType: None\n",
-  "context": {}
-}

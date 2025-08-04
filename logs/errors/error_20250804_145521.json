@@ -1,8 +1,0 @@
-{
-  "timestamp": "2025-08-04T14:55:21.512653",
-  "stage_name": "test_stage",
-  "error_type": "ConnectionError",
-  "error_message": "Network timeout",
-  "traceback": "NoneType: None\n",
-  "context": {}
-}
