@@ -1,0 +1,6 @@
+2025-08-04 12:38:46,435 - root - INFO - Logging system initialized - Level: INFO, File: logs/pipeline.log
+2025-08-04 12:38:46,435 - test_module - INFO - This is a test info message
+2025-08-04 12:38:46,435 - test_module - WARNING - This is a test warning message
+2025-08-04 12:39:08,317 - root - INFO - Logging system initialized - Level: INFO, File: logs/pipeline.log
+2025-08-04 12:39:08,318 - main - INFO - Diabetes LSTM Pipeline started
+2025-08-04 12:39:08,319 - main - INFO - Pipeline initialization completed successfully

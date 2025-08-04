@@ -1,0 +1,1 @@
+"""Data acquisition module for downloading and loading diabetes datasets."""

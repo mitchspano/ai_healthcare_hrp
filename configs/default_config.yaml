@@ -1,0 +1,32 @@
+# Default configuration for the diabetes LSTM pipeline
+# This file will be populated with actual configuration parameters
+
+# Data configuration
+data:
+  raw_data_path: "data/raw"
+  processed_data_path: "data/processed"
+  dataset_url: "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/gk9m674wcx-1.zip"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/pipeline.log"
+
+# Model configuration
+model:
+  sequence_length: 60
+  prediction_horizon: 1
+  lstm_units: 128
+  dropout_rate: 0.2
+  learning_rate: 0.001
+
+# Training configuration
+training:
+  batch_size: 32
+  epochs: 100
+  validation_split: 0.2
+  early_stopping_patience: 10
+
+# Random seed for reproducibility
+random_seed: 42
