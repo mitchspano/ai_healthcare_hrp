@@ -46,7 +46,7 @@
   - Write unit tests validating feature calculations against known expected values
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6. Create time-series sequence generation system
+- [x] 6. Create time-series sequence generation system
 
   - Implement SequenceGenerator class for creating input-output sequence pairs with configurable sequence length
   - Build ParticipantSplitter class to maintain participant boundaries during data splitting
