@@ -94,16 +94,24 @@ class PipelineOrchestrator:
             self.sequence_generator = SequenceGenerationPipeline(sequence_config)
 
             # Model building
-            model_config = self.config.get("model", {})
-            self.model_builder = LSTMModelBuilder(model_config)
+            self.model_builder = LSTMModelBuilder(self.config.get_all())
 
             # Training
-            training_config = self.config.get("training", {})
-            self.trainer = ModelTrainer(training_config)
+            self.trainer = ModelTrainer(self.config.get_all())
 
             # Evaluation
             evaluation_config = self.config.get("evaluation", {})
-            self.clinical_metrics = ClinicalMetrics(evaluation_config)
+            self.clinical_metrics = ClinicalMetrics(
+                target_range=tuple(
+                    evaluation_config.get("target_glucose_range", [70.0, 180.0])
+                ),
+                hypoglycemia_threshold=evaluation_config.get(
+                    "hypoglycemia_threshold", 70.0
+                ),
+                hyperglycemia_threshold=evaluation_config.get(
+                    "hyperglycemia_threshold", 250.0
+                ),
+            )
             self.visualization_generator = VisualizationGenerator(
                 evaluation_config.get("metrics_output_dir", "reports")
             )
@@ -466,21 +474,60 @@ class PipelineOrchestrator:
 
     def _execute_evaluation(self, progress_callback: Callable[[float], None]) -> Any:
         """Execute evaluation stage."""
-        model = self.pipeline_data["training"]["model"]
+        print("DEBUG: _execute_evaluation called")
+
+        model = self.pipeline_data["model_building"]
         sequence_data = self.pipeline_data["sequence_generation"]
+
+        print("DEBUG: model type:", type(model))
+        print("DEBUG: sequence_data type:", type(sequence_data))
+        print(
+            "DEBUG: sequence_data keys:",
+            (
+                list(sequence_data.keys())
+                if isinstance(sequence_data, dict)
+                else "Not a dict"
+            ),
+        )
+
+        if "splits" in sequence_data:
+            print(
+                "DEBUG: splits keys:",
+                (
+                    list(sequence_data["splits"].keys())
+                    if isinstance(sequence_data["splits"], dict)
+                    else "splits not a dict"
+                ),
+            )
+            if "test" in sequence_data["splits"]:
+                print("DEBUG: test data type:", type(sequence_data["splits"]["test"]))
+                print(
+                    "DEBUG: test data keys:",
+                    (
+                        list(sequence_data["splits"]["test"].keys())
+                        if isinstance(sequence_data["splits"]["test"], dict)
+                        else "test not a dict"
+                    ),
+                )
 
         progress_callback(20)
 
+        # Convert tuple to dictionary format expected by evaluate_model
+        X_test, y_test = sequence_data["splits"]["test"]
+        test_data = {"X": X_test, "y": y_test}
+
         # Calculate clinical metrics
-        metrics = self.clinical_metrics.evaluate_model(
-            model, sequence_data["splits"]["test"]
-        )
+        print("DEBUG: About to call clinical_metrics.evaluate_model")
+        metrics = self.clinical_metrics.evaluate_model(model, test_data)
+        print("DEBUG: clinical_metrics.evaluate_model completed")
         progress_callback(60)
 
         # Generate visualizations
+        print("DEBUG: About to call visualization_generator.generate_evaluation_plots")
         visualizations = self.visualization_generator.generate_evaluation_plots(
-            model, sequence_data["splits"]["test"], metrics
+            model, test_data, metrics
         )
+        print("DEBUG: visualization_generator.generate_evaluation_plots completed")
         progress_callback(100)
 
         return {"metrics": metrics, "visualizations": visualizations}
@@ -489,25 +536,26 @@ class PipelineOrchestrator:
         self, progress_callback: Callable[[float], None]
     ) -> Any:
         """Execute model persistence stage."""
-        model = self.pipeline_data["training"]["model"]
-        training_result = self.pipeline_data["training"]
+        model = self.pipeline_data[
+            "training"
+        ]  # The training stage returns the model directly
+        training_metadata = (
+            self.trainer.get_training_summary()
+        )  # Get metadata from trainer
         evaluation_result = self.pipeline_data["evaluation"]
 
         progress_callback(30)
 
-        # Save model
-        model_path = self.model_persistence.save_model(
-            model, training_result["metadata"], evaluation_result["metrics"]
-        )
-        progress_callback(70)
-
-        # Save preprocessing components
-        preprocessing_path = self.model_persistence.save_preprocessing_components(
-            self.pipeline_data["feature_engineering"]
+        # Save model (includes preprocessing components)
+        result = self.model_persistence.save_model(
+            model,
+            self.pipeline_data["feature_engineering"],  # preprocessing_components
+            training_metadata,
+            evaluation_result["metrics"],  # performance_metrics
         )
         progress_callback(100)
 
-        return {"model_path": model_path, "preprocessing_path": preprocessing_path}
+        return result
 
     def _save_pipeline_status(self) -> None:
         """Save pipeline status to file."""

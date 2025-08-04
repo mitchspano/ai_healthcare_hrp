@@ -62,10 +62,17 @@ class VisualizationGenerator:
         self._draw_clarke_zones(ax)
 
         # Perfect prediction line
-        max_val = max(np.max(y_true_valid), np.max(y_pred_valid))
-        ax.plot(
-            [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
-        )
+        if len(y_true_valid) > 0 and len(y_pred_valid) > 0:
+            max_val = max(np.max(y_true_valid), np.max(y_pred_valid))
+            ax.plot(
+                [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
+            )
+        else:
+            # Handle case where arrays are empty
+            max_val = 400  # Default maximum for glucose values
+            ax.plot(
+                [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
+            )
 
         # Formatting
         ax.set_xlabel("Reference Glucose (mg/dL)", fontsize=12)
@@ -76,8 +83,12 @@ class VisualizationGenerator:
 
         # Set equal aspect ratio and limits
         ax.set_aspect("equal")
-        ax.set_xlim(0, max_val * 1.05)
-        ax.set_ylim(0, max_val * 1.05)
+        if len(y_true_valid) > 0 and len(y_pred_valid) > 0:
+            ax.set_xlim(0, max_val * 1.05)
+            ax.set_ylim(0, max_val * 1.05)
+        else:
+            ax.set_xlim(0, 400)
+            ax.set_ylim(0, 400)
 
         # Save plot
         if save_path is None:
@@ -91,6 +102,61 @@ class VisualizationGenerator:
 
         logger.info(f"Clarke Error Grid plot saved to {save_path}")
         return str(save_path)
+
+    def generate_evaluation_plots(self, model, test_data, metrics):
+        """
+        Generate comprehensive evaluation plots for model performance.
+
+        Args:
+            model: Trained Keras model
+            test_data: Dictionary containing test data with 'X' and 'y' keys
+            metrics: Dictionary containing clinical metrics
+
+        Returns:
+            Dictionary containing paths to generated plots
+        """
+        if model is None:
+            raise ValueError("Model cannot be None")
+
+        if "X" not in test_data or "y" not in test_data:
+            raise ValueError("Test data must contain 'X' and 'y' keys")
+
+        X_test = test_data["X"]
+        y_test = test_data["y"]
+
+        logger.info(f"Generating evaluation plots for {len(X_test)} test samples")
+
+        # Make predictions
+        y_pred = model.predict(X_test, batch_size=32, verbose=0)
+        y_pred = y_pred.flatten()
+        y_test = y_test.flatten()
+
+        # Generate plots
+        plots = {}
+
+        # Clarke Error Grid
+        clarke_path = self.plot_clarke_error_grid(y_test, y_pred)
+        plots["clarke_error_grid"] = clarke_path
+
+        # Parkes Error Grid
+        parkes_path = self.plot_parkes_error_grid(y_test, y_pred)
+        plots["parkes_error_grid"] = parkes_path
+
+        # Prediction scatter plot
+        scatter_path = self.plot_prediction_scatter(y_test, y_pred)
+        plots["prediction_scatter"] = scatter_path
+
+        # Residuals plot
+        residuals_path = self.plot_residuals(y_test, y_pred)
+        plots["residuals"] = residuals_path
+
+        # Clinical metrics summary
+        metrics_path = self.plot_clinical_metrics_summary(metrics)
+        plots["clinical_metrics_summary"] = metrics_path
+
+        logger.info(f"Generated {len(plots)} evaluation plots")
+
+        return plots
 
     def _draw_clarke_zones(self, ax):
         """Draw Clarke Error Grid zone boundaries."""
@@ -139,10 +205,17 @@ class VisualizationGenerator:
         self._draw_parkes_zones(ax, grid_type)
 
         # Perfect prediction line
-        max_val = max(np.max(y_true_valid), np.max(y_pred_valid))
-        ax.plot(
-            [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
-        )
+        if len(y_true_valid) > 0 and len(y_pred_valid) > 0:
+            max_val = max(np.max(y_true_valid), np.max(y_pred_valid))
+            ax.plot(
+                [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
+            )
+        else:
+            # Handle case where arrays are empty
+            max_val = 400  # Default maximum for glucose values
+            ax.plot(
+                [0, max_val], [0, max_val], "k--", alpha=0.5, label="Perfect Prediction"
+            )
 
         # Formatting
         ax.set_xlabel("Reference Glucose (mg/dL)", fontsize=12)
@@ -157,8 +230,12 @@ class VisualizationGenerator:
 
         # Set equal aspect ratio and limits
         ax.set_aspect("equal")
-        ax.set_xlim(0, max_val * 1.05)
-        ax.set_ylim(0, max_val * 1.05)
+        if len(y_true_valid) > 0 and len(y_pred_valid) > 0:
+            ax.set_xlim(0, max_val * 1.05)
+            ax.set_ylim(0, max_val * 1.05)
+        else:
+            ax.set_xlim(0, 400)
+            ax.set_ylim(0, 400)
 
         # Save plot
         if save_path is None:

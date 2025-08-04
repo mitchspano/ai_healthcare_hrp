@@ -3,6 +3,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, callbacks
+from keras.saving import register_keras_serializable
 from typing import Dict, Any, List, Tuple, Optional
 import numpy as np
 from pathlib import Path
@@ -37,7 +38,7 @@ class LSTMModelBuilder:
         # Training parameters
         self.learning_rate = self.model_config.get("learning_rate", 0.001)
         self.batch_size = self.training_config.get("batch_size", 32)
-        self.epochs = self.training_config.get("epochs", 100)
+        self.epochs = self.training_config.get("epochs", 5)
 
         # Regularization
         self.l1_reg = self.model_config.get("l1_regularization", 0.0)
@@ -287,6 +288,7 @@ class LSTMModelBuilder:
         return summary_info
 
 
+@register_keras_serializable()
 class GlucoseAwareLoss(keras.losses.Loss):
     """Custom loss function that penalizes clinically dangerous glucose prediction errors more heavily."""
 
@@ -361,6 +363,7 @@ class GlucoseAwareLoss(keras.losses.Loss):
         return tf.reduce_mean(total_loss)
 
 
+@register_keras_serializable()
 class GlucoseMARD(keras.metrics.Metric):
     """Mean Absolute Relative Difference (MARD) metric for glucose predictions."""
 
@@ -397,6 +400,7 @@ class GlucoseMARD(keras.metrics.Metric):
         self.count.assign(0.0)
 
 
+@register_keras_serializable()
 class TimeInRangeAccuracy(keras.metrics.Metric):
     """Time-in-range prediction accuracy metric."""
 

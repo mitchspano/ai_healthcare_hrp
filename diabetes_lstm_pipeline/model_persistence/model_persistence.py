@@ -374,8 +374,8 @@ class ModelPersistence:
 
     def _save_model_artifacts(self, model: keras.Model, version_dir: Path) -> Path:
         """Save the Keras model in SavedModel format."""
-        model_path = version_dir / "model"
-        model.save(model_path, save_format="tf")
+        model_path = version_dir / "model.keras"
+        model.save(model_path)
         logger.debug(f"Model saved to: {model_path}")
         return model_path
 
@@ -462,8 +462,16 @@ class ModelPersistence:
             training_metrics=performance_metrics.get("training", {}),
             validation_metrics=performance_metrics.get("validation", {}),
             test_metrics=performance_metrics.get("test"),
-            input_shape=tuple(model.input_shape[1:]) if model.input_shape else (),
-            output_shape=tuple(model.output_shape[1:]) if model.output_shape else (),
+            input_shape=(
+                tuple(model.input_shape[1:])
+                if hasattr(model, "input_shape") and model.input_shape
+                else ()
+            ),
+            output_shape=(
+                tuple(model.output_shape[1:])
+                if hasattr(model, "output_shape") and model.output_shape
+                else ()
+            ),
             feature_names=preprocessing_components.get("feature_names", []),
             target_name=preprocessing_components.get("target_name", "glucose"),
             total_parameters=model.count_params(),
@@ -493,7 +501,9 @@ class ModelPersistence:
             layer_info = {
                 "name": layer.name,
                 "type": layer.__class__.__name__,
-                "output_shape": layer.output_shape,
+                "output_shape": (
+                    layer.output_shape if hasattr(layer, "output_shape") else None
+                ),
                 "params": layer.count_params(),
             }
 

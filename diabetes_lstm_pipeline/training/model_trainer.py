@@ -41,7 +41,7 @@ class ModelTrainer:
 
         # Training parameters
         self.batch_size = self.training_config.get("batch_size", 32)
-        self.epochs = self.training_config.get("epochs", 100)
+        self.epochs = self.training_config.get("epochs", 5)
         self.validation_split = self.training_config.get("validation_split", 0.2)
         self.verbose = self.training_config.get("verbose", 1)
 

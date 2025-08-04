@@ -153,6 +153,13 @@ models/checkpoints/
 *.ckpt
 *.safetensors
 
+# Model metadata files (exclude these)
+config.json
+metadata.json
+models/*/config.json
+models/*/metadata.json
+models/version_registry.json
+
 # Logs and reports
 logs/
 reports/
