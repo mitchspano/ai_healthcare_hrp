@@ -46,3 +46,45 @@ validation:
     - "FoodDelivered"
     - "CarbSize"
     - "CGM"
+
+# Data preprocessing configuration
+preprocessing:
+  missing_values:
+    strategies:
+      CGM: "interpolation"
+      Basal: "forward_fill"
+      TotalBolusInsulinDelivered: "zero_fill"
+      CorrectionDelivered: "zero_fill"
+      FoodDelivered: "zero_fill"
+      CarbSize: "zero_fill"
+    interpolation_method: "linear"
+    max_gap_minutes: 30
+
+  outliers:
+    detection_methods: ["iqr", "zscore"]
+    treatment_method: "clip"
+    zscore_threshold: 3.0
+    iqr_multiplier: 1.5
+    contamination: 0.1
+    column_settings:
+      CGM:
+        min_value: 40
+        max_value: 400
+        detection_methods: ["iqr", "zscore", "domain_specific"]
+        treatment_method: "clip"
+
+  cleaning:
+    duplicate_strategy: "keep_last"
+    time_tolerance_seconds: 60
+    participant_column: "participant_id"
+
+  resampling:
+    target_frequency: "5min" # 5 minutes
+    participant_column: "participant_id"
+    aggregation_methods:
+      CGM: "mean"
+      Basal: "mean"
+      TotalBolusInsulinDelivered: "sum"
+      CorrectionDelivered: "sum"
+      FoodDelivered: "sum"
+      CarbSize: "sum"

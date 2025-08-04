@@ -1,0 +1,92 @@
+================================================================================
+DIABETES LSTM PIPELINE - PREPROCESSING REPORT
+================================================================================
+Generated: 2025-08-04 13:18:06
+Processing Time: 0.09 seconds
+
+OVERVIEW
+----------------------------------------
+Initial Data Shape: (288, 8)
+Final Data Shape: (288, 8)
+
+DATA CLEANING
+----------------------------------------
+Initial Rows: 288
+Final Rows: 288
+Exact Duplicates Removed: 0
+Near Duplicates Removed: 0
+All-NaN Rows Removed: 0
+Data Retention Rate: 100.00%
+
+MISSING VALUE HANDLING
+----------------------------------------
+CGM:
+  Missing Before: 10
+  Missing After: 0
+  Strategy: interpolation
+  Imputation Rate: 100.00%
+
+Basal:
+  Missing Before: 5
+  Missing After: 0
+  Strategy: forward_fill
+  Imputation Rate: 100.00%
+
+TotalBolusInsulinDelivered:
+  Missing Before: 5
+  Missing After: 0
+  Strategy: zero_fill
+  Imputation Rate: 100.00%
+
+OUTLIER TREATMENT
+----------------------------------------
+CGM:
+  Outliers Detected: 8
+  Outliers Treated: 6
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 2.78%
+
+Basal:
+  Outliers Detected: 1
+  Outliers Treated: 1
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 0.35%
+
+TotalBolusInsulinDelivered:
+  Outliers Detected: 9
+  Outliers Treated: 3
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 3.12%
+
+CorrectionDelivered:
+  Outliers Detected: 13
+  Outliers Treated: 3
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 4.51%
+
+FoodDelivered:
+  Outliers Detected: 19
+  Outliers Treated: 3
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 6.60%
+
+CarbSize:
+  Outliers Detected: 16
+  Outliers Treated: 3
+  Detection Methods: iqr, zscore
+  Treatment Method: clip
+  Outlier Percentage: 5.56%
+
+TIME SERIES RESAMPLING
+----------------------------------------
+Target Frequency: 5min
+Original Rows: 288
+Resampled Rows: 288
+Compression Ratio: 1.00
+
+================================================================================
