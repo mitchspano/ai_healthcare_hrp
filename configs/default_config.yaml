@@ -102,3 +102,28 @@ evaluation:
   hypoglycemia_threshold: 70 # mg/dL
   hyperglycemia_threshold: 180 # mg/dL
   metrics_output_dir: "reports/metrics"
+
+# Pipeline orchestration configuration
+pipeline:
+  skip_stages: [] # List of stages to skip
+  parallel_stages: [] # List of stages to run in parallel
+
+# Parallel processing configuration
+parallel_processing:
+  max_workers: 4 # Maximum number of parallel workers
+  use_processes: true # Use processes instead of threads
+  chunk_size: 1000 # Default chunk size for parallel processing
+  memory_limit_gb: 4.0 # Memory limit in GB
+
+# Error recovery configuration
+error_recovery:
+  max_retries: 3 # Maximum number of retries per stage
+  retry_delay: 60 # Delay between retries in seconds
+  checkpoint_dir: "checkpoints" # Directory for saving checkpoints
+  error_log_dir: "logs/errors" # Directory for error logs
+
+# Output configuration
+output:
+  base_dir: "outputs" # Base directory for all outputs
+  save_intermediate: true # Save intermediate results
+  cleanup_temp: true # Clean up temporary files
