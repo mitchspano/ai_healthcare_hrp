@@ -216,6 +216,173 @@ class DiabetesModelService:
             logger.error(f"Preprocessing failed: {e}")
             raise
 
+    def predict_structured(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Make a structured prediction using user-provided data.
+
+        Args:
+            request_data: Dictionary containing:
+                - subject_id: str
+                - glucoseReadings: List[float] (12 readings)
+                - carbohydrates: List[Dict] with 'amount' and 'timestamp'
+                - insulinBolus: List[Dict] with 'units' and 'timestamp'
+
+        Returns:
+            Dictionary with prediction results
+        """
+        try:
+            if not self.is_loaded():
+                return {
+                    "prediction": None,
+                    "prediction_text": "⚠️ Model not loaded. Please try again later.",
+                    "confidence": None,
+                    "model_info": {"error": "Model not loaded"},
+                }
+
+            # Validate input data
+            glucose_readings = request_data.get("glucoseReadings", [])
+            carbohydrates = request_data.get("carbohydrates", [])
+            insulin_bolus = request_data.get("insulinBolus", [])
+
+            if len(glucose_readings) != 12:
+                return {
+                    "prediction": None,
+                    "prediction_text": "⚠️ Please provide exactly 12 glucose readings.",
+                    "confidence": None,
+                    "model_info": self.get_model_info(),
+                }
+
+            # Create a simplified feature matrix based on the model's expected input
+            # This is a basic implementation - you may need to enhance this based on your actual feature engineering
+            features = self._create_feature_matrix(
+                glucose_readings, carbohydrates, insulin_bolus
+            )
+
+            # Reshape for model input (batch_size=1, sequence_length=12, features=62)
+            model_input = features.reshape(1, 12, 62)
+
+            # Make prediction
+            prediction = self.predict_glucose(model_input)
+            predicted_value = float(prediction[0][0])
+
+            # Generate prediction text with clinical interpretation
+            prediction_text = self._generate_prediction_text(
+                predicted_value, glucose_readings
+            )
+
+            return {
+                "prediction": predicted_value,
+                "prediction_text": prediction_text,
+                "confidence": 0.85,  # Mock confidence score
+                "model_info": self.get_model_info(),
+            }
+
+        except Exception as e:
+            logger.error(f"Structured prediction failed: {e}")
+            return {
+                "prediction": None,
+                "prediction_text": f"⚠️ Prediction failed: {str(e)}",
+                "confidence": None,
+                "model_info": self.get_model_info(),
+            }
+
+    def _create_feature_matrix(
+        self,
+        glucose_readings: List[float],
+        carbohydrates: List[Dict],
+        insulin_bolus: List[Dict],
+    ) -> np.ndarray:
+        """
+        Create a feature matrix from structured input data.
+
+        This is a simplified implementation. In a real scenario, you would need to:
+        1. Apply the exact same feature engineering as used during training
+        2. Handle time-based features properly
+        3. Apply the same scaling/normalization
+        """
+        # Initialize feature matrix with zeros
+        features = np.zeros((12, 62))
+
+        # Fill in glucose readings (first feature)
+        for i, reading in enumerate(glucose_readings):
+            if i < 12:
+                features[i, 0] = reading
+
+        # Calculate basic statistical features
+        if len(glucose_readings) > 0:
+            mean_glucose = np.mean(glucose_readings)
+            std_glucose = np.std(glucose_readings)
+
+            # Fill statistical features
+            for i in range(12):
+                features[i, 1] = mean_glucose  # Mean glucose
+                features[i, 2] = std_glucose  # Std glucose
+                features[i, 3] = (
+                    glucose_readings[i] - mean_glucose
+                )  # Deviation from mean
+
+        # Add carbohydrate features (simplified)
+        total_carbs = (
+            sum(carb.get("amount", 0) for carb in carbohydrates) if carbohydrates else 0
+        )
+        for i in range(12):
+            features[i, 4] = total_carbs  # Total carbs consumed
+
+        # Add insulin features (simplified)
+        total_insulin = (
+            sum(insulin.get("units", 0) for insulin in insulin_bolus)
+            if insulin_bolus
+            else 0
+        )
+        for i in range(12):
+            features[i, 5] = total_insulin  # Total insulin bolus
+
+        # Add time-based features (simplified)
+        current_hour = 12  # Mock current hour
+        for i in range(12):
+            features[i, 6] = (current_hour + i * 5 / 60) % 24  # Hour of day
+            features[i, 7] = 1  # Day of week (simplified)
+
+        # Fill remaining features with zeros or basic patterns
+        # In a real implementation, these would be properly engineered features
+        for i in range(12):
+            for j in range(8, 62):
+                features[i, j] = 0.0
+
+        return features
+
+    def _generate_prediction_text(
+        self, predicted_value: float, recent_readings: List[float]
+    ) -> str:
+        """
+        Generate human-readable prediction text with clinical interpretation.
+        """
+        # Determine trend
+        if len(recent_readings) >= 2:
+            trend = "rising" if recent_readings[-1] > recent_readings[-2] else "falling"
+        else:
+            trend = "stable"
+
+        # Clinical interpretation
+        if predicted_value < 70:
+            status = "**LOW** (Hypoglycemia)"
+            advice = "Consider consuming fast-acting carbohydrates and monitor closely."
+        elif predicted_value <= 180:
+            status = "**NORMAL**"
+            advice = "Your blood sugar is expected to be in the target range."
+        else:
+            status = "**HIGH** (Hyperglycemia)"
+            advice = "Consider checking for ketones and contacting your healthcare provider if elevated for extended periods."
+
+        return f"""Based on your data, I predict your blood sugar will be **{predicted_value:.1f} mg/dL** in the next time period.
+
+**Clinical Status:** {status}
+**Trend:** {trend}
+
+**Advice:** {advice}
+
+*Note: This prediction is based on AI analysis and should not replace medical advice. Always consult with your healthcare provider for medical decisions.*"""
+
 
 # Global instance
 diabetes_model_service = DiabetesModelService()

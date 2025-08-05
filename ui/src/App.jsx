@@ -8,6 +8,7 @@ const APP_VERSION = "1.0.1"; // Force cache refresh
 // Quick action buttons for common diabetes queries
 const QUICK_ACTIONS = [
   { text: "How's my blood sugar?", icon: "📊" },
+  { text: "Predict my blood sugar", icon: "🔮" },
   { text: "What should I eat?", icon: "🍽️" },
   { text: "Exercise recommendations", icon: "🏃‍♂️" },
   { text: "Medication reminder", icon: "💊" },
@@ -25,6 +26,266 @@ const MOCK_METRICS = {
   insulinOnBoard: 2.3,
   lastMeal: "3 hours ago"
 };
+
+// Structured input component for blood sugar predictions
+function BloodSugarPredictionForm({ onSubmit, onCancel, loading }) {
+  const [timelineData, setTimelineData] = useState([]);
+  const [errors, setErrors] = useState({});
+
+  // Initialize timeline with 12 glucose readings (every 5 minutes, going backwards from current time)
+  useEffect(() => {
+    const now = new Date();
+    const initialTimeline = [];
+    
+    for (let i = 0; i < 12; i++) {
+      const time = new Date(now.getTime() - (11 - i) * 5 * 60 * 1000); // 5 minute intervals
+      initialTimeline.push({
+        id: `glucose-${i}`,
+        type: 'glucose',
+        time: time,
+        value: '',
+        label: `Glucose Reading ${i + 1}`,
+        timeLabel: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+    
+    setTimelineData(initialTimeline);
+  }, []);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate glucose readings
+    const glucoseEntries = timelineData.filter(item => item.type === 'glucose');
+    const glucoseErrors = glucoseEntries.map((entry, index) => {
+      if (!entry.value.trim()) return `Glucose reading at ${entry.timeLabel} is required`;
+      const num = parseFloat(entry.value);
+      if (isNaN(num) || num < 0 || num > 600) return `Glucose reading at ${entry.timeLabel} must be between 0-600 mg/dL`;
+      return null;
+    });
+    
+    if (glucoseErrors.some(error => error)) {
+      newErrors.glucose = glucoseErrors;
+    }
+
+    // Validate carbohydrates (optional entries)
+    const carbEntries = timelineData.filter(item => item.type === 'carbohydrate');
+    if (carbEntries.length > 0) {
+      const carbErrors = carbEntries.map((entry, index) => {
+        if (!entry.value.trim()) return `Carb amount at ${entry.timeLabel} is required`;
+        const amount = parseFloat(entry.value);
+        if (isNaN(amount) || amount < 0) return `Carb amount at ${entry.timeLabel} must be positive`;
+        return null;
+      });
+      
+      if (carbErrors.some(error => error)) {
+        newErrors.carbohydrates = carbErrors;
+      }
+    }
+
+    // Validate insulin (optional entries)
+    const insulinEntries = timelineData.filter(item => item.type === 'insulin');
+    if (insulinEntries.length > 0) {
+      const insulinErrors = insulinEntries.map((entry, index) => {
+        if (!entry.value.trim()) return `Insulin units at ${entry.timeLabel} is required`;
+        const units = parseFloat(entry.value);
+        if (isNaN(units) || units < 0) return `Insulin units at ${entry.timeLabel} must be positive`;
+        return null;
+      });
+      
+      if (insulinErrors.some(error => error)) {
+        newErrors.insulin = insulinErrors;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      // Sort timeline data by time
+      const sortedData = [...timelineData].sort((a, b) => a.time - b.time);
+      
+      const data = {
+        glucoseReadings: sortedData
+          .filter(item => item.type === 'glucose')
+          .map(item => parseFloat(item.value)),
+        carbohydrates: sortedData
+          .filter(item => item.type === 'carbohydrate')
+          .map(item => ({
+            amount: parseFloat(item.value),
+            timestamp: item.timeLabel
+          })),
+        insulinBolus: sortedData
+          .filter(item => item.type === 'insulin')
+          .map(item => ({
+            units: parseFloat(item.value),
+            timestamp: item.timeLabel
+          }))
+      };
+      onSubmit(data);
+    }
+  };
+
+  const addCarbohydrate = () => {
+    const now = new Date();
+    const newEntry = {
+      id: `carb-${Date.now()}`,
+      type: 'carbohydrate',
+      time: now,
+      value: '',
+      label: 'Carbohydrates (g)',
+      timeLabel: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    // Insert at the appropriate position in timeline
+    const newTimeline = [...timelineData, newEntry].sort((a, b) => a.time - b.time);
+    setTimelineData(newTimeline);
+  };
+
+  const removeEntry = (id) => {
+    setTimelineData(timelineData.filter(item => item.id !== id));
+  };
+
+  const addInsulin = () => {
+    const now = new Date();
+    const newEntry = {
+      id: `insulin-${Date.now()}`,
+      type: 'insulin',
+      time: now,
+      value: '',
+      label: 'Insulin (units)',
+      timeLabel: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    // Insert at the appropriate position in timeline
+    const newTimeline = [...timelineData, newEntry].sort((a, b) => a.time - b.time);
+    setTimelineData(newTimeline);
+  };
+
+  const updateEntry = (id, value) => {
+    setTimelineData(timelineData.map(item => 
+      item.id === id ? { ...item, value } : item
+    ));
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-4">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Blood Sugar Prediction Timeline</h3>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          <strong>Instructions:</strong> Fill in your glucose readings for the past hour (every 5 minutes). Optionally add any carb intake or insulin boluses at their actual times. The timeline will automatically sort everything chronologically.
+        </p>
+      </div>
+      
+      {/* Add Entry Buttons */}
+      <div className="flex gap-3 mb-6">
+        <button
+          type="button"
+          onClick={addCarbohydrate}
+          className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+        >
+          <span>🍽️</span>
+          <span>Add Carbs</span>
+        </button>
+        <button
+          type="button"
+          onClick={addInsulin}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+        >
+          <span>💉</span>
+          <span>Add Insulin</span>
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Timeline */}
+        <div className="space-y-3">
+          {timelineData
+            .sort((a, b) => a.time - b.time)
+            .map((entry) => (
+              <div key={entry.id} className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg">
+                {/* Time */}
+                <div className="w-20 text-sm font-medium text-gray-600">
+                  {entry.timeLabel}
+                </div>
+                
+                {/* Icon */}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm">
+                  {entry.type === 'glucose' && <span className="text-blue-600">📊</span>}
+                  {entry.type === 'carbohydrate' && <span className="text-green-600">🍽️</span>}
+                  {entry.type === 'insulin' && <span className="text-purple-600">💉</span>}
+                </div>
+                
+                {/* Label */}
+                <div className="flex-1 text-sm font-medium text-gray-700">
+                  {entry.label}
+                </div>
+                
+                {/* Input */}
+                <div className="w-32">
+                  <input
+                    type="number"
+                    placeholder={entry.type === 'glucose' ? 'mg/dL' : entry.type === 'carbohydrate' ? 'g' : 'units'}
+                    value={entry.value}
+                    onChange={(e) => updateEntry(entry.id, e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                      errors[entry.type] && errors[entry.type].some(error => error.includes(entry.timeLabel)) 
+                        ? 'border-red-500' 
+                        : 'border-gray-300'
+                    }`}
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+                
+                {/* Remove button for non-glucose entries */}
+                {entry.type !== 'glucose' && (
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(entry.id)}
+                    className="px-2 py-1 text-red-500 hover:text-red-600 text-sm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+        </div>
+
+        {/* Error Messages */}
+        {Object.keys(errors).map(errorType => 
+          errors[errorType] && errors[errorType].some(error => error) && (
+            <div key={errorType} className="text-xs text-red-500 bg-red-50 p-3 rounded-lg">
+              {errors[errorType].map((error, index) => error && <div key={index}>{error}</div>)}
+            </div>
+          )
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          >
+            {loading ? "Predicting..." : "Get Prediction"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 function HealthMetricsCard() {
   const [metrics] = useState(MOCK_METRICS);
@@ -175,6 +436,8 @@ export default function App() {
   const [subjectId] = useState("Subject 9"); // In a real app, this would come from auth
   const [showMetrics, setShowMetrics] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState("checking"); // "checking", "connected", "disconnected"
+  const [showPredictionForm, setShowPredictionForm] = useState(false);
+  const [predictionLoading, setPredictionLoading] = useState(false);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -190,11 +453,25 @@ export default function App() {
 
   // Check connection status on mount and periodically
   useEffect(() => {
+    let isChecking = false;
+    
     const checkConnection = async () => {
+      // Prevent multiple simultaneous checks
+      if (isChecking) {
+        console.log('Connection check already in progress, skipping...');
+        return;
+      }
+      
+      isChecking = true;
       setConnectionStatus("checking");
+      
       try {
-        console.log('Checking connection to:', API_URL.replace('/chat/', '/ping'));
-        console.log('App version:', APP_VERSION);
+        // Only log on initial check or errors to reduce spam
+        if (!window.connectionChecked) {
+          console.log('Checking connection to:', API_URL.replace('/chat/', '/ping'));
+          console.log('App version:', APP_VERSION);
+          window.connectionChecked = true;
+        }
         
         const response = await fetch(API_URL.replace('/chat/', '/ping'), {
           method: 'GET',
@@ -207,11 +484,8 @@ export default function App() {
           cache: 'no-cache',
         });
         
-        console.log('Connection check response:', response.status, response.ok);
-        
         if (response.ok) {
           const data = await response.json();
-          console.log('Connection check data:', data);
           setConnectionStatus("connected");
         } else {
           console.error('Connection check failed with status:', response.status);
@@ -220,16 +494,19 @@ export default function App() {
       } catch (error) {
         console.error('Connection check failed:', error);
         setConnectionStatus("disconnected");
+      } finally {
+        isChecking = false;
       }
     };
     
-    // Immediate check
-    checkConnection();
+    // Initial check with delay to avoid immediate spam
+    const initialTimer = setTimeout(checkConnection, 2000);
     
-    // Periodic check every 5 seconds (very frequent)
-    const intervalTimer = setInterval(checkConnection, 5000);
+    // Periodic check every 30 seconds (reasonable frequency)
+    const intervalTimer = setInterval(checkConnection, 30000);
     
     return () => {
+      clearTimeout(initialTimer);
       clearInterval(intervalTimer);
     };
   }, []);
@@ -241,6 +518,27 @@ export default function App() {
 
   const sendMessage = async (messageText) => {
     if (!messageText.trim() || loading) return;
+    
+    // Check if this is a blood sugar prediction request
+    const isPredictionRequest = messageText.toLowerCase().includes('projected blood sugar') || 
+                               messageText.toLowerCase().includes('blood sugar prediction') ||
+                               messageText.toLowerCase().includes('predict') ||
+                               messageText.toLowerCase().includes('forecast');
+    
+    if (isPredictionRequest) {
+      setShowPredictionForm(true);
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const userMsg = { who: "user", text: messageText, timestamp };
+      setHistory((h) => [...h, userMsg]);
+      
+      const assistantMsg = { 
+        who: "assistant", 
+        text: "I can help you predict your blood sugar levels! Please provide the following information:\n\n• **12 glucose readings** (every 5 minutes)\n• **Carbohydrates consumed** with timestamps\n• **Insulin bolus amounts** with timestamps\n\nThis will help me make an accurate prediction using our AI model.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setHistory((h) => [...h, assistantMsg]);
+      return;
+    }
     
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMsg = { who: "user", text: messageText, timestamp };
@@ -295,6 +593,54 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStructuredPrediction = async (predictionData) => {
+    setPredictionLoading(true);
+    
+    try {
+      console.log('Sending structured prediction data:', predictionData);
+      
+      const res = await fetch(API_URL + 'predict', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          subject_id: subjectId, 
+          ...predictionData 
+        }),
+        mode: 'cors',
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log('Prediction response:', data);
+      
+      const assistantMsg = { 
+        who: "assistant", 
+        text: data.prediction_text || `Based on your data, I predict your blood sugar will be **${data.prediction?.toFixed(1)} mg/dL** in the next time period.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setHistory((h) => [...h, assistantMsg]);
+      
+      setShowPredictionForm(false);
+    } catch (e) {
+      console.error('Error making prediction:', e);
+      const errorMsg = { 
+        who: "assistant", 
+        text: "⚠️ I'm having trouble making the prediction right now. Please try again in a moment.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setHistory((h) => [...h, errorMsg]);
+    } finally {
+      setPredictionLoading(false);
+    }
+  };
+
+  const handleCancelPrediction = () => {
+    setShowPredictionForm(false);
   };
 
   const handleSend = () => {
@@ -494,6 +840,16 @@ export default function App() {
           {history.map((message, i) => (
             <MessageBubble key={i} {...message} />
           ))}
+          
+          {showPredictionForm && (
+            <div className="mb-4">
+              <BloodSugarPredictionForm
+                onSubmit={handleStructuredPrediction}
+                onCancel={handleCancelPrediction}
+                loading={predictionLoading}
+              />
+            </div>
+          )}
           
           {loading && <LoadingIndicator />}
         </div>

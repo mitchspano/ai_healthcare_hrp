@@ -13,6 +13,8 @@ app.add_middleware(
         settings.frontend_origin,
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "file://",  # Allow file:// protocol for testing
     ],
     allow_methods=["*"],
@@ -27,7 +29,3 @@ app.include_router(chat_router, prefix="/chat")
 @app.get("/ping")
 async def ping():
     return {"ping": "pong"}
-
-
-# mount the /chat router
-app.include_router(chat_router, prefix="/chat")
