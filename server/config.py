@@ -1,5 +1,6 @@
-# src/config.py
+# server/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """
@@ -13,8 +14,9 @@ class Settings(BaseSettings):
     # Tell pydantic-settings where to read .env
     model_config = SettingsConfigDict(
         env_file=".env",
-        case_sensitive=False,       # make matching case-insensitive
-        extra="ignore"              # ignore any other keys in .env
+        case_sensitive=False,  # make matching case-insensitive
+        extra="ignore",  # ignore any other keys in .env
     )
+
 
 settings = Settings()

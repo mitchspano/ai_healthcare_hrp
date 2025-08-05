@@ -14,6 +14,32 @@ The AI agent will receive data from Continuous Glucose Monitors (CGM) and meal i
 - **Meal Information Analysis**: Incorporates dietary data for comprehensive management
 - **Personalized Recommendations**: Provides tailored advice based on individual patterns
 - **Child-Friendly Interface**: Designed specifically for young users
+- **AI Model Integration**: LSTM neural network for glucose prediction
+- **Real-time Chat Interface**: Interactive AI assistant with model predictions
+
+## 🚀 Quick Start
+
+### Start Both Servers (Backend + Frontend)
+
+```bash
+# Option 1: Clean startup script (recommended)
+python3 start_clean.py
+
+# Option 2: Simple startup script
+python3 start_simple.py
+
+# Option 3: Complex startup script (with monitoring)
+python3 start_servers.py
+```
+
+### Access the Application
+
+- **Frontend UI**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Model Status**: http://localhost:8000/chat/model/status
+
+For detailed startup instructions, see [STARTUP_GUIDE.md](STARTUP_GUIDE.md).
 
 ## Project Status
 

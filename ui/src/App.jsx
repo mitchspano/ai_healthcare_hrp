@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/chat";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/chat/";
+const APP_VERSION = "1.0.1"; // Force cache refresh
 
 // Quick action buttons for common diabetes queries
 const QUICK_ACTIONS = [
@@ -173,6 +174,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [subjectId] = useState("Subject 9"); // In a real app, this would come from auth
   const [showMetrics, setShowMetrics] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState("checking"); // "checking", "connected", "disconnected"
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -185,6 +187,52 @@ export default function App() {
     }, 100);
     return () => clearTimeout(timer);
   }, [history, loading]);
+
+  // Check connection status on mount and periodically
+  useEffect(() => {
+    const checkConnection = async () => {
+      setConnectionStatus("checking");
+      try {
+        console.log('Checking connection to:', API_URL.replace('/chat/', '/ping'));
+        console.log('App version:', APP_VERSION);
+        
+        const response = await fetch(API_URL.replace('/chat/', '/ping'), {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+          mode: 'cors',
+          cache: 'no-cache',
+        });
+        
+        console.log('Connection check response:', response.status, response.ok);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Connection check data:', data);
+          setConnectionStatus("connected");
+        } else {
+          console.error('Connection check failed with status:', response.status);
+          setConnectionStatus("disconnected");
+        }
+      } catch (error) {
+        console.error('Connection check failed:', error);
+        setConnectionStatus("disconnected");
+      }
+    };
+    
+    // Immediate check
+    checkConnection();
+    
+    // Periodic check every 5 seconds (very frequent)
+    const intervalTimer = setInterval(checkConnection, 5000);
+    
+    return () => {
+      clearInterval(intervalTimer);
+    };
+  }, []);
 
   // Focus input on mount
   useEffect(() => {
@@ -202,17 +250,25 @@ export default function App() {
     setLoading(true);
     
     try {
+      console.log('Sending message to:', API_URL);
+      console.log('Message data:', { subject_id: subjectId, text: messageText });
+      
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject_id: subjectId, text: messageText }),
+        mode: 'cors',
       });
+      
+      console.log('Response status:', res.status, res.ok);
       
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       
       const data = await res.json();
+      console.log('Response data:', data);
+      
       const assistantMsg = { 
         who: "assistant", 
         text: data.reply, 
@@ -221,9 +277,18 @@ export default function App() {
       setHistory((h) => [...h, assistantMsg]);
     } catch (e) {
       console.error('Error sending message:', e);
+      let errorText = "⚠️ I'm having trouble connecting right now. Please try again in a moment.";
+      
+      // Provide more specific error messages for debugging
+      if (e.name === 'TypeError' && e.message.includes('fetch')) {
+        errorText = "⚠️ Network error: Unable to connect to the server. Please check if the backend is running.";
+      } else if (e.message.includes('HTTP error')) {
+        errorText = `⚠️ Server error: ${e.message}`;
+      }
+      
       const errorMsg = { 
         who: "assistant", 
-        text: "⚠️ I'm having trouble connecting right now. Please try again in a moment.", 
+        text: errorText, 
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setHistory((h) => [...h, errorMsg]);
@@ -251,6 +316,36 @@ export default function App() {
     // In a real app, this would trigger emergency protocols
     alert("Emergency protocols activated. Contacting emergency services...");
   };
+
+  // Expose connection test function globally for debugging
+  useEffect(() => {
+    window.testConnection = async () => {
+      console.log('Manual connection test triggered');
+      try {
+        const response = await fetch('http://localhost:8000/ping', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
+          cache: 'no-cache',
+        });
+        console.log('Manual test response:', response.status, response.ok);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Manual test data:', data);
+          setConnectionStatus("connected");
+          return true;
+        } else {
+          console.error('Manual test failed:', response.status);
+          setConnectionStatus("disconnected");
+          return false;
+        }
+      } catch (error) {
+        console.error('Manual test error:', error);
+        setConnectionStatus("disconnected");
+        return false;
+      }
+    };
+  }, []);
 
 
 
@@ -338,8 +433,38 @@ export default function App() {
               <p className="text-sm text-gray-500">Ask me anything about your diabetes management</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full pulse"></div>
-              <span className="text-sm text-gray-500">Online</span>
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === "connected" ? "bg-green-500" : 
+                connectionStatus === "checking" ? "bg-yellow-500" : "bg-red-500"
+              } ${connectionStatus === "checking" ? "animate-pulse" : ""}`}></div>
+              <span className="text-sm text-gray-500">
+                {connectionStatus === "connected" ? "Online" : 
+                 connectionStatus === "checking" ? "Checking..." : "Offline"}
+              </span>
+              <button 
+                onClick={() => {
+                  setConnectionStatus("checking");
+                  setTimeout(() => {
+                    const checkConnection = async () => {
+                      try {
+                        const response = await fetch(API_URL.replace('/chat/', '/ping'));
+                        if (response.ok) {
+                          setConnectionStatus("connected");
+                        } else {
+                          setConnectionStatus("disconnected");
+                        }
+                      } catch (error) {
+                        console.error('Manual connection check failed:', error);
+                        setConnectionStatus("disconnected");
+                      }
+                    };
+                    checkConnection();
+                  }, 100);
+                }}
+                className="text-xs text-blue-500 hover:text-blue-600 underline"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </div>
