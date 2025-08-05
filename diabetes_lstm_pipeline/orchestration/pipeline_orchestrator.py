@@ -474,41 +474,8 @@ class PipelineOrchestrator:
 
     def _execute_evaluation(self, progress_callback: Callable[[float], None]) -> Any:
         """Execute evaluation stage."""
-        print("DEBUG: _execute_evaluation called")
-
         model = self.pipeline_data["model_building"]
         sequence_data = self.pipeline_data["sequence_generation"]
-
-        print("DEBUG: model type:", type(model))
-        print("DEBUG: sequence_data type:", type(sequence_data))
-        print(
-            "DEBUG: sequence_data keys:",
-            (
-                list(sequence_data.keys())
-                if isinstance(sequence_data, dict)
-                else "Not a dict"
-            ),
-        )
-
-        if "splits" in sequence_data:
-            print(
-                "DEBUG: splits keys:",
-                (
-                    list(sequence_data["splits"].keys())
-                    if isinstance(sequence_data["splits"], dict)
-                    else "splits not a dict"
-                ),
-            )
-            if "test" in sequence_data["splits"]:
-                print("DEBUG: test data type:", type(sequence_data["splits"]["test"]))
-                print(
-                    "DEBUG: test data keys:",
-                    (
-                        list(sequence_data["splits"]["test"].keys())
-                        if isinstance(sequence_data["splits"]["test"], dict)
-                        else "test not a dict"
-                    ),
-                )
 
         progress_callback(20)
 
@@ -517,17 +484,13 @@ class PipelineOrchestrator:
         test_data = {"X": X_test, "y": y_test}
 
         # Calculate clinical metrics
-        print("DEBUG: About to call clinical_metrics.evaluate_model")
         metrics = self.clinical_metrics.evaluate_model(model, test_data)
-        print("DEBUG: clinical_metrics.evaluate_model completed")
         progress_callback(60)
 
         # Generate visualizations
-        print("DEBUG: About to call visualization_generator.generate_evaluation_plots")
         visualizations = self.visualization_generator.generate_evaluation_plots(
             model, test_data, metrics
         )
-        print("DEBUG: visualization_generator.generate_evaluation_plots completed")
         progress_callback(100)
 
         return {"metrics": metrics, "visualizations": visualizations}

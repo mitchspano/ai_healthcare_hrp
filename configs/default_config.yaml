@@ -1,49 +1,50 @@
 # Default configuration for the diabetes LSTM pipeline
-# This file will be populated with actual configuration parameters
+# Optimized for speed while maintaining reasonable performance
 
 # Data configuration
 data:
   raw_data_path: "data/raw"
   processed_data_path: "data/processed"
   dataset_url: "https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/gk9m674wcx-1.zip"
-  force_download: false # Set to true to force re-download even if data exists
+  force_download: false
 
 # Logging configuration
 logging:
-  level: "INFO"
+  level: "WARNING"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   file: "logs/pipeline.log"
 
-# Model configuration
+# Model configuration - Optimized for speed
 model:
-  sequence_length: 60
+  sequence_length: 12
   prediction_horizon: 1
-  lstm_units: [128, 64] # List of LSTM layer units
-  dropout_rate: 0.2
-  recurrent_dropout: 0.1
-  dense_units: [64, 32] # List of dense layer units
+  lstm_units: [64, 32]
+  dropout_rate: 0.1
+  recurrent_dropout: 0.05
+  dense_units: [32, 16]
   activation: "relu"
   output_activation: "linear"
-  learning_rate: 0.001
+  learning_rate: 0.002
   l1_regularization: 0.0
-  l2_regularization: 0.001
+  l2_regularization: 0.0005
 
-# Training configuration
+# Training configuration - Optimized for speed
 training:
-  batch_size: 32
-  epochs: 5
-  validation_split: 0.2
-  early_stopping_patience: 15
-  lr_patience: 7
+  batch_size: 128
+  epochs: 10
+  validation_split: 0.15
+  early_stopping_patience: 5
+  lr_patience: 3
+  verbose: 1
 
 # Random seed for reproducibility
 random_seed: 42
 
-# Data validation configuration
+# Data validation configuration - Simplified for speed
 validation:
   report_output_dir: "reports"
   zscore_threshold: 3.0
-  contamination: 0.1 # For isolation forest
+  contamination: 0.05
   required_columns:
     - "EventDateTime"
     - "DeviceMode"
@@ -55,7 +56,7 @@ validation:
     - "CarbSize"
     - "CGM"
 
-# Data preprocessing configuration
+# Data preprocessing configuration - Optimized for speed
 preprocessing:
   missing_values:
     strategies:
@@ -69,16 +70,16 @@ preprocessing:
     max_gap_minutes: 30
 
   outliers:
-    detection_methods: ["iqr", "zscore"]
+    detection_methods: ["iqr"]
     treatment_method: "clip"
     zscore_threshold: 3.0
     iqr_multiplier: 1.5
-    contamination: 0.1
+    contamination: 0.05
     column_settings:
       CGM:
         min_value: 40
         max_value: 400
-        detection_methods: ["iqr", "zscore", "domain_specific"]
+        detection_methods: ["iqr"]
         treatment_method: "clip"
 
   cleaning:
@@ -87,7 +88,7 @@ preprocessing:
     participant_column: "participant_id"
 
   resampling:
-    target_frequency: "5min" # 5 minutes
+    target_frequency: "10min"
     participant_column: "participant_id"
     aggregation_methods:
       CGM: "mean"
@@ -96,6 +97,47 @@ preprocessing:
       CorrectionDelivered: "sum"
       FoodDelivered: "sum"
       CarbSize: "sum"
+
+# Feature engineering configuration - Simplified for speed
+feature_engineering:
+  temporal:
+    include_time_features: true
+    include_cyclical_features: false
+    max_lag_hours: 2
+
+  insulin:
+    include_cumulative_features: true
+    include_ratios: false
+    max_cumulative_hours: 3
+
+  glucose:
+    include_trends: true
+    include_variability: false
+    include_time_in_range: false
+
+  lag:
+    max_lag_steps: 6
+    include_rolling_stats: false
+
+  scaling:
+    type: "standard"
+    handle_outliers: false
+
+# Sequence generation configuration - Optimized for speed
+sequence_generation:
+  sequence_length: 12
+  prediction_horizon: 1
+  target_column: "CGM"
+  sampling_interval: 10
+  min_sequences_per_participant: 10
+
+# Splitting configuration
+splitting:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  random_seed: 42
+  split_strategy: "participant"
 
 # Evaluation configuration
 evaluation:
@@ -106,34 +148,42 @@ evaluation:
 
 # Pipeline orchestration configuration
 pipeline:
-  skip_stages: [] # List of stages to skip
-  parallel_stages: [] # List of stages to run in parallel
+  skip_stages: [] # Can add stages to skip if needed
+  parallel_stages: ["preprocessing", "feature_engineering"] # Enable parallel processing
 
-# Parallel processing configuration
+# Parallel processing configuration - Optimized for speed
 parallel_processing:
-  max_workers: 4 # Maximum number of parallel workers
-  use_processes: true # Use processes instead of threads
-  chunk_size: 1000 # Default chunk size for parallel processing
-  memory_limit_gb: 4.0 # Memory limit in GB
+  max_workers: 8
+  use_processes: true
+  chunk_size: 2000
+  memory_limit_gb: 8.0
 
 # Error recovery configuration
 error_recovery:
-  max_retries: 3 # Maximum number of retries per stage
-  retry_delay: 60 # Delay between retries in seconds
-  checkpoint_dir: "checkpoints" # Directory for saving checkpoints
-  error_log_dir: "logs/errors" # Directory for error logs
+  max_retries: 2
+  retry_delay: 30
+  checkpoint_dir: "checkpoints"
+  error_log_dir: "logs/errors"
 
 # Output configuration
 output:
-  base_dir: "outputs" # Base directory for all outputs
-  save_intermediate: true # Save intermediate results
-  cleanup_temp: true # Clean up temporary files
+  base_dir: "outputs"
+  save_intermediate: false
+  cleanup_temp: true
 
 # Model persistence configuration
 model_persistence:
-  base_dir: "models" # Base directory for model artifacts
-  max_versions_per_model: 5 # Maximum number of versions to keep per model
-  auto_cleanup: true # Automatically clean up old versions
-  save_format: "keras" # Model save format (keras, h5, saved_model)
-  compression: true # Enable compression for saved models
-  include_training_history: true # Include training history in metadata
+  base_dir: "models"
+  max_versions_per_model: 3
+  auto_cleanup: true
+  save_format: "keras"
+  compression: false
+  include_training_history: false
+
+# TensorFlow optimization settings
+tensorflow:
+  mixed_precision: true
+  memory_growth: true
+  xla_optimization: true
+  num_parallel_calls: 4
+  prefetch_buffer_size: 2
