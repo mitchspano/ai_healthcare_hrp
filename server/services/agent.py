@@ -67,6 +67,22 @@ async def run_agent_async(
         subject_id, conversation_id
     )
 
+    # Check if this is a prediction result that should be stored in context
+    if user_text.startswith("[PREDICTION RESULT]"):
+        # Extract the actual prediction text
+        prediction_text = user_text.replace("[PREDICTION RESULT]", "").strip()
+
+        # Add the prediction to conversation context without generating a new response
+        conversation_service.add_message(conversation.id, "assistant", prediction_text)
+
+        # Return the prediction text as the reply
+        return {
+            "reply": prediction_text,
+            "tool_used": None,
+            "tool_result": None,
+            "conversation_id": conversation.id,
+        }
+
     # Add user message to conversation
     conversation_service.add_message(conversation.id, "user", user_text)
 

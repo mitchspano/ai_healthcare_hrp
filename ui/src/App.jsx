@@ -37,13 +37,16 @@ function BloodSugarPredictionForm({ onSubmit, onCancel, loading }) {
     const now = new Date();
     const initialTimeline = [];
     
+    // Default glucose values (from most recent to oldest)
+    const defaultGlucoseValues = [117, 115, 112, 113, 108, 104, 111, 98, 94, 95, 92, 88];
+    
     for (let i = 0; i < 12; i++) {
       const time = new Date(now.getTime() - (11 - i) * 5 * 60 * 1000); // 5 minute intervals
       initialTimeline.push({
         id: `glucose-${i}`,
         type: 'glucose',
         time: time,
-        value: '',
+        value: defaultGlucoseValues[i].toString(), // Set default value
         label: `Glucose Reading ${i + 1}`,
         timeLabel: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
@@ -596,9 +599,31 @@ export default function App() {
       const data = await res.json();
       console.log('Prediction response:', data);
       
+      const predictionText = data.prediction_text || `Based on your data, I predict your blood sugar will be **${data.prediction?.toFixed(1)} mg/dL** in the next time period.`;
+      
+      // Add the prediction to the conversation context by sending it through the chat endpoint
+      const contextRes = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          subject_id: subjectId, 
+          text: `[PREDICTION RESULT] ${predictionText}`,
+          conversation_id: conversationId 
+        }),
+        mode: 'cors',
+      });
+      
+      if (contextRes.ok) {
+        const contextData = await contextRes.json();
+        // Update conversation ID if this is a new conversation
+        if (contextData.conversation_id && !conversationId) {
+          setConversationId(contextData.conversation_id);
+        }
+      }
+      
       const assistantMsg = { 
         who: "assistant", 
-        text: data.prediction_text || `Based on your data, I predict your blood sugar will be **${data.prediction?.toFixed(1)} mg/dL** in the next time period.`,
+        text: predictionText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setHistory((h) => [...h, assistantMsg]);
