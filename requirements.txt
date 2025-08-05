@@ -39,3 +39,9 @@ shap>=0.41.0
 
 # Optional: Hyperparameter optimization
 optuna>=3.0.0
+
+# Web framework for serving the application
+fastapi==0.99.1
+uvicorn[standard]==0.23.2
+openai-agents==0.3.0
+python-dotenv==1.0.0
