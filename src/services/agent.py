@@ -8,26 +8,30 @@ from src.services.tools import get_latest_metrics, send_alert
 # Ensure the SDK picks up your key
 os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
+
 # Wrap stubs as callable tools
 @function_tool
 def metrics_tool(subject_id: str, window_mins: int = 60) -> dict:
     return get_latest_metrics(subject_id, window_mins)
 
+
 @function_tool
 def alert_tool(subject_id: str, message: str, severity: str = "info") -> dict:
     return send_alert(subject_id, message, severity)
 
-# Define your Agent with O3 (reasoning) and temp=1.0
+
+# Define your Agent with GPT-4o and temp=1.0
 t1d_agent = Agent(
     name="T1D Assistant",
     instructions=(
         "You are a kind, pediatric diabetes assistant. "
         "Use the metrics and alert tools for proactive feedback."
     ),
-    model="o3",
+    model="gpt-4o",
     model_settings=ModelSettings(temperature=1.0),
     tools=[metrics_tool, alert_tool],
 )
+
 
 async def run_agent_async(subject_id: str, user_text: str) -> dict:
     """
