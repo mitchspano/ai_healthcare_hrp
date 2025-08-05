@@ -43,6 +43,8 @@ class LSTMModelBuilder:
         # Regularization
         self.l1_reg = self.model_config.get("l1_regularization", 0.0)
         self.l2_reg = self.model_config.get("l2_regularization", 0.001)
+        self.gradient_clip_norm = self.model_config.get("gradient_clip_norm", None)
+        self.weight_decay = self.model_config.get("weight_decay", 0.0)
 
     def build_model(self, input_shape: Tuple[int, int]) -> keras.Model:
         """
@@ -140,10 +142,24 @@ class LSTMModelBuilder:
         """
         logger.info(f"Compiling model with loss function: {loss_function}")
 
-        # Configure optimizer
-        optimizer = keras.optimizers.Adam(
-            learning_rate=self.learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-7
-        )
+        # Configure optimizer with gradient clipping and weight decay
+        if self.gradient_clip_norm:
+            optimizer = keras.optimizers.Adam(
+                learning_rate=self.learning_rate,
+                beta_1=0.9,
+                beta_2=0.999,
+                epsilon=1e-7,
+                clipnorm=self.gradient_clip_norm,
+                weight_decay=self.weight_decay,
+            )
+        else:
+            optimizer = keras.optimizers.Adam(
+                learning_rate=self.learning_rate,
+                beta_1=0.9,
+                beta_2=0.999,
+                epsilon=1e-7,
+                weight_decay=self.weight_decay,
+            )
 
         # Select loss function
         if loss_function == "mse":
