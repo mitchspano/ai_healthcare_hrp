@@ -9,9 +9,15 @@ app = FastAPI(title="T1D Chat MVP")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=[
+        settings.frontend_origin,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "file://",  # Allow file:// protocol for testing
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 # mount at /chat/
