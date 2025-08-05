@@ -1,5 +1,6 @@
 // src/App.jsx
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/chat";
 
@@ -82,7 +83,31 @@ function MessageBubble({ who, text, timestamp }) {
             ? 'bg-blue-500 text-white rounded-br-md'
             : 'bg-white text-gray-800 rounded-bl-md border border-gray-200'
         }`}>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+          {isUser ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{text}</p>
+          ) : (
+            <div className="text-sm leading-relaxed chat-markdown">
+              <ReactMarkdown
+                components={{
+                  // Custom styling for markdown elements
+                  h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-gray-900">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-gray-900">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 text-gray-900">{children}</h3>,
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                  blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-200 pl-3 italic text-gray-600">{children}</blockquote>,
+                  hr: () => <hr className="my-3 border-gray-200" />,
+                }}
+              >
+                {text}
+              </ReactMarkdown>
+            </div>
+          )}
           {timestamp && (
             <p className={`text-xs mt-1 ${
               isUser ? 'text-blue-100' : 'text-gray-500'
