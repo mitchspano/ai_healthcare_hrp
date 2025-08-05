@@ -102,7 +102,7 @@ class TemporalFeatureExtractor:
         # Time since last meal (when FoodDelivered > 0)
         meal_mask = df["FoodDelivered"].fillna(0) > 0
         df["last_meal_time"] = df.loc[meal_mask, "EventDateTime"]
-        df["last_meal_time"] = df["last_meal_time"].fillna(method="ffill")
+        df["last_meal_time"] = df["last_meal_time"].ffill()
         df["time_since_last_meal"] = (
             df["EventDateTime"] - df["last_meal_time"]
         ).dt.total_seconds() / 3600
@@ -113,7 +113,7 @@ class TemporalFeatureExtractor:
         # Time since last bolus (when TotalBolusInsulinDelivered > 0)
         bolus_mask = df["TotalBolusInsulinDelivered"].fillna(0) > 0
         df["last_bolus_time"] = df.loc[bolus_mask, "EventDateTime"]
-        df["last_bolus_time"] = df["last_bolus_time"].fillna(method="ffill")
+        df["last_bolus_time"] = df["last_bolus_time"].ffill()
         df["time_since_last_bolus"] = (
             df["EventDateTime"] - df["last_bolus_time"]
         ).dt.total_seconds() / 3600
@@ -125,7 +125,7 @@ class TemporalFeatureExtractor:
         df["basal_change"] = df["Basal"].diff().abs() > 0.01
         basal_mask = df["basal_change"].fillna(False)
         df["last_basal_time"] = df.loc[basal_mask, "EventDateTime"]
-        df["last_basal_time"] = df["last_basal_time"].fillna(method="ffill")
+        df["last_basal_time"] = df["last_basal_time"].ffill()
         df["time_since_last_basal"] = (
             df["EventDateTime"] - df["last_basal_time"]
         ).dt.total_seconds() / 3600
@@ -234,19 +234,19 @@ class InsulinFeatureExtractor:
         df["total_insulin"] = df["TotalBolusInsulinDelivered"] + df["Basal"]
 
         # Cumulative insulin over different time windows
-        df["cumulative_insulin_1h"] = df["total_insulin"].rolling("1H").sum()
-        df["cumulative_insulin_3h"] = df["total_insulin"].rolling("3H").sum()
-        df["cumulative_insulin_6h"] = df["total_insulin"].rolling("6H").sum()
+        df["cumulative_insulin_1h"] = df["total_insulin"].rolling("1h").sum()
+        df["cumulative_insulin_3h"] = df["total_insulin"].rolling("3h").sum()
+        df["cumulative_insulin_6h"] = df["total_insulin"].rolling("6h").sum()
 
         # Cumulative bolus insulin
-        df["cumulative_bolus_1h"] = df["TotalBolusInsulinDelivered"].rolling("1H").sum()
-        df["cumulative_bolus_3h"] = df["TotalBolusInsulinDelivered"].rolling("3H").sum()
+        df["cumulative_bolus_1h"] = df["TotalBolusInsulinDelivered"].rolling("1h").sum()
+        df["cumulative_bolus_3h"] = df["TotalBolusInsulinDelivered"].rolling("3h").sum()
 
         # Cumulative correction insulin
-        df["cumulative_correction_1h"] = df["CorrectionDelivered"].rolling("1H").sum()
+        df["cumulative_correction_1h"] = df["CorrectionDelivered"].rolling("1h").sum()
 
         # Average basal rate
-        df["avg_basal_rate_1h"] = df["Basal"].rolling("1H").mean()
+        df["avg_basal_rate_1h"] = df["Basal"].rolling("1h").mean()
 
         # Clean up intermediate columns
         df = df.drop(["total_insulin"], axis=1)
@@ -383,7 +383,7 @@ class GlucoseFeatureExtractor:
         df = df.sort_values("EventDateTime")
 
         # Fill missing CGM values using forward fill
-        df["CGM"] = df["CGM"].fillna(method="ffill")
+        df["CGM"] = df["CGM"].ffill()
 
         # Glucose trends and rates of change
         df = self._calculate_glucose_trends(df)
@@ -456,12 +456,12 @@ class GlucoseFeatureExtractor:
         df = df.set_index("EventDateTime")
 
         # Standard deviation over time windows
-        df["glucose_variability_1h"] = df["CGM"].rolling("1H").std()
-        df["glucose_variability_3h"] = df["CGM"].rolling("3H").std()
+        df["glucose_variability_1h"] = df["CGM"].rolling("1h").std()
+        df["glucose_variability_3h"] = df["CGM"].rolling("3h").std()
 
         # Coefficient of variation
         df["glucose_cv_1h"] = (
-            df["glucose_variability_1h"] / df["CGM"].rolling("1H").mean()
+            df["glucose_variability_1h"] / df["CGM"].rolling("1h").mean()
         )
 
         # Fill NaN values
@@ -488,10 +488,10 @@ class GlucoseFeatureExtractor:
         above_range = df["CGM"] > self.target_range[1]
 
         # Calculate time in range over different windows
-        df["time_in_range_3h"] = in_range.rolling("3H").mean()
-        df["time_in_range_6h"] = in_range.rolling("6H").mean()
-        df["time_below_range_3h"] = below_range.rolling("3H").mean()
-        df["time_above_range_3h"] = above_range.rolling("3H").mean()
+        df["time_in_range_3h"] = in_range.rolling("3h").mean()
+        df["time_in_range_6h"] = in_range.rolling("6h").mean()
+        df["time_below_range_3h"] = below_range.rolling("3h").mean()
+        df["time_above_range_3h"] = above_range.rolling("3h").mean()
 
         # Fill NaN values
         tir_columns = [
@@ -521,7 +521,7 @@ class GlucoseFeatureExtractor:
 
         # Glucose stability index (based on recent variability)
         df = df.set_index("EventDateTime")
-        recent_std = df["CGM"].rolling("1H").std().fillna(0)
+        recent_std = df["CGM"].rolling("1h").std().fillna(0)
         df["glucose_stability_index"] = 1 / (1 + recent_std)  # Higher = more stable
         df = df.reset_index()
 
@@ -596,7 +596,7 @@ class LagFeatureGenerator:
         # Fill NaN values with forward fill for initial periods
         lag_columns = [f"{column}_lag_{lag}min" for lag in self.lag_intervals]
         for lag_col in lag_columns:
-            df[lag_col] = df[lag_col].fillna(method="ffill").fillna(df[column].mean())
+            df[lag_col] = df[lag_col].ffill().fillna(df[column].mean())
 
         return df
 
@@ -609,7 +609,7 @@ class LagFeatureGenerator:
                 continue
 
             # Rolling mean and std over different windows
-            for window in ["30min", "1H", "2H"]:
+            for window in ["30min", "1h", "2h"]:
                 mean_col = f"{column}_rolling_mean_{window}"
                 std_col = f"{column}_rolling_std_{window}"
 

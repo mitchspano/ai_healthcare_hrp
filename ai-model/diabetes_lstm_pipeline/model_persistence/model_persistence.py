@@ -254,7 +254,7 @@ class ModelPersistence:
         self._verify_checksums(metadata, version_dir)
 
         # Load model
-        model_path = version_dir / "model"
+        model_path = version_dir / "model.keras"
         model = keras.models.load_model(model_path)
 
         loaded_components = {

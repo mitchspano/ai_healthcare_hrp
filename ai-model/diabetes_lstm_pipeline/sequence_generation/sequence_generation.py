@@ -856,9 +856,9 @@ class TimeSeriesResampler:
             if self.interpolation_method == "linear":
                 df[col] = df[col].interpolate(method="linear", limit=max_gap_periods)
             elif self.interpolation_method == "forward_fill":
-                df[col] = df[col].fillna(method="ffill", limit=max_gap_periods)
+                df[col] = df[col].ffill(limit=max_gap_periods)
             elif self.interpolation_method == "backward_fill":
-                df[col] = df[col].fillna(method="bfill", limit=max_gap_periods)
+                df[col] = df[col].bfill(limit=max_gap_periods)
             else:
                 # Default to linear interpolation
                 df[col] = df[col].interpolate(method="linear", limit=max_gap_periods)

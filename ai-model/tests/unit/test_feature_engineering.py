@@ -26,7 +26,7 @@ class TestTemporalFeatureExtractor:
     @pytest.fixture
     def sample_data(self):
         """Create sample diabetes data for testing."""
-        dates = pd.date_range("2024-01-01 08:00:00", periods=24, freq="1H")
+        dates = pd.date_range("2024-01-01 08:00:00", periods=24, freq="1h")
         return pd.DataFrame(
             {
                 "EventDateTime": dates,
@@ -509,8 +509,8 @@ class TestLagFeatureGenerator:
         rolling_features = [
             "CGM_rolling_mean_30min",
             "CGM_rolling_std_30min",
-            "CGM_rolling_mean_1H",
-            "CGM_rolling_std_1H",
+            "CGM_rolling_mean_1h",
+            "CGM_rolling_std_1h",
         ]
         for feature in rolling_features:
             assert feature in result.columns
@@ -582,7 +582,7 @@ class TestFeatureScaler:
         """Create sample data for scaling."""
         return pd.DataFrame(
             {
-                "EventDateTime": pd.date_range("2024-01-01", periods=10, freq="1H"),
+                "EventDateTime": pd.date_range("2024-01-01", periods=10, freq="1h"),
                 "feature1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                 "feature2": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
                 "feature3": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],

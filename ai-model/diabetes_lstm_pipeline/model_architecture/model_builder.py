@@ -3,7 +3,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, callbacks
-from keras.saving import register_keras_serializable
+from tensorflow.keras.saving import register_keras_serializable
 from typing import Dict, Any, List, Tuple, Optional
 import numpy as np
 from pathlib import Path
@@ -338,7 +338,7 @@ class GlucoseAwareLoss(keras.losses.Loss):
             Loss value
         """
         # Base MSE loss
-        mse_loss = tf.keras.losses.mean_squared_error(y_true, y_pred)
+        mse_loss = tf.reduce_mean(tf.square(y_true - y_pred))
 
         # Additional penalty for dangerous ranges
         hypoglycemia_penalty = tf.where(

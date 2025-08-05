@@ -291,6 +291,11 @@ class TestModelPersistence:
         # Extract version from path
         version1 = Path(saved_paths1["version_dir"]).name
 
+        # Add small delay to ensure different timestamps
+        import time
+
+        time.sleep(0.1)
+
         # Save second version (modify performance slightly)
         modified_metrics = performance_metrics.copy()
         modified_metrics["validation"]["loss"] = 0.025
@@ -382,6 +387,11 @@ class TestModelPersistence:
         )
 
         version1 = Path(saved_paths1["version_dir"]).name
+
+        # Add small delay to ensure different timestamps
+        import time
+
+        time.sleep(0.1)
 
         saved_paths2 = model_persistence.save_model(
             model=sample_model,
