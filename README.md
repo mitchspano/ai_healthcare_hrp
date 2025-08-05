@@ -32,6 +32,13 @@ python3 start_simple.py
 python3 start_servers.py
 ```
 
+### Stop All Servers
+
+```bash
+# Kill all server processes
+python3 kill_servers.py
+```
+
 ### Access the Application
 
 - **Frontend UI**: http://localhost:5173
