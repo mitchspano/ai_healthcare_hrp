@@ -438,6 +438,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState("checking"); // "checking", "connected", "disconnected"
   const [showPredictionForm, setShowPredictionForm] = useState(false);
   const [predictionLoading, setPredictionLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(null); // Track current conversation
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -453,62 +454,25 @@ export default function App() {
 
   // Check connection status on mount and periodically
   useEffect(() => {
-    let isChecking = false;
-    
-    const checkConnection = async () => {
-      // Prevent multiple simultaneous checks
-      if (isChecking) {
-        console.log('Connection check already in progress, skipping...');
-        return;
-      }
-      
-      isChecking = true;
-      setConnectionStatus("checking");
-      
-      try {
-        // Only log on initial check or errors to reduce spam
-        if (!window.connectionChecked) {
-          console.log('Checking connection to:', API_URL.replace('/chat/', '/ping'));
-          console.log('App version:', APP_VERSION);
-          window.connectionChecked = true;
-        }
-        
-        const response = await fetch(API_URL.replace('/chat/', '/ping'), {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-          mode: 'cors',
-          cache: 'no-cache',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setConnectionStatus("connected");
-        } else {
-          console.error('Connection check failed with status:', response.status);
+      const checkConnection = async () => {
+        try {
+          const res = await fetch(API_URL.replace('/chat/', '/chat/model/status'), {
+            method: "GET",
+            mode: 'cors',
+          });
+          if (res.ok) {
+            setConnectionStatus("connected");
+          } else {
+            setConnectionStatus("disconnected");
+          }
+        } catch (error) {
           setConnectionStatus("disconnected");
         }
-      } catch (error) {
-        console.error('Connection check failed:', error);
-        setConnectionStatus("disconnected");
-      } finally {
-        isChecking = false;
-      }
-    };
-    
-    // Initial check with delay to avoid immediate spam
-    const initialTimer = setTimeout(checkConnection, 2000);
-    
-    // Periodic check every 30 seconds (reasonable frequency)
-    const intervalTimer = setInterval(checkConnection, 30000);
-    
-    return () => {
-      clearTimeout(initialTimer);
-      clearInterval(intervalTimer);
-    };
+      };
+
+    checkConnection();
+    const interval = setInterval(checkConnection, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
   // Focus input on mount
@@ -549,12 +513,20 @@ export default function App() {
     
     try {
       console.log('Sending message to:', API_URL);
-      console.log('Message data:', { subject_id: subjectId, text: messageText });
+      console.log('Message data:', { 
+        subject_id: subjectId, 
+        text: messageText, 
+        conversation_id: conversationId 
+      });
       
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject_id: subjectId, text: messageText }),
+        body: JSON.stringify({ 
+          subject_id: subjectId, 
+          text: messageText, 
+          conversation_id: conversationId 
+        }),
         mode: 'cors',
       });
       
@@ -566,6 +538,12 @@ export default function App() {
       
       const data = await res.json();
       console.log('Response data:', data);
+      
+      // Update conversation ID if this is a new conversation
+      if (data.conversation_id && !conversationId) {
+        setConversationId(data.conversation_id);
+        console.log('New conversation started:', data.conversation_id);
+      }
       
       const assistantMsg = { 
         who: "assistant", 
@@ -656,6 +634,12 @@ export default function App() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const startNewConversation = () => {
+    setHistory([]);
+    setConversationId(null);
+    setShowPredictionForm(false);
   };
 
   const handleEmergency = () => {
@@ -777,8 +761,19 @@ export default function App() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Chat</h2>
               <p className="text-sm text-gray-500">Ask me anything about your diabetes management</p>
+              {conversationId && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Conversation: {conversationId.slice(0, 8)}...
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={startNewConversation}
+                className="px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                New Chat
+              </button>
               <div className={`w-2 h-2 rounded-full ${
                 connectionStatus === "connected" ? "bg-green-500" : 
                 connectionStatus === "checking" ? "bg-yellow-500" : "bg-red-500"

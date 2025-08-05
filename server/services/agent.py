@@ -9,6 +9,7 @@ from server.services.tools import (
     get_model_info,
     predict_glucose_levels,
 )
+from server.services.conversation_service import conversation_service
 
 # Ensure the SDK picks up your key
 os.environ["OPENAI_API_KEY"] = settings.openai_api_key
@@ -44,7 +45,9 @@ t1d_agent = Agent(
         "You are a kind, pediatric diabetes assistant with access to a trained LSTM model for glucose prediction. "
         "Use the metrics, alert, model info, and glucose prediction tools for proactive feedback. "
         "When asked about glucose predictions, use the glucose_prediction_tool. "
-        "When asked about the AI model, use the model_info_tool."
+        "When asked about the AI model, use the model_info_tool. "
+        "You have access to conversation history to provide context-aware responses. "
+        "Use this context to remember previous questions and provide more personalized assistance."
     ),
     model="gpt-4o",
     model_settings=ModelSettings(temperature=1.0),
@@ -52,16 +55,40 @@ t1d_agent = Agent(
 )
 
 
-async def run_agent_async(subject_id: str, user_text: str) -> dict:
+async def run_agent_async(
+    subject_id: str, user_text: str, conversation_id: str = None
+) -> dict:
     """
     Async entrypoint for the agent. Uses Runner.run() under the hood,
-    which works inside an existing event loop (unlike run_sync).  [oai_citation:0‡OpenAI GitHub](https://openai.github.io/openai-agents-python/ref/run/?utm_source=chatgpt.com)
+    which works inside an existing event loop (unlike run_sync).
     """
+    # Get or create conversation
+    conversation = conversation_service.get_or_create_conversation(
+        subject_id, conversation_id
+    )
+
+    # Add user message to conversation
+    conversation_service.add_message(conversation.id, "user", user_text)
+
+    # Get conversation context
+    context = conversation_service.get_conversation_context(
+        conversation.id, max_messages=10
+    )
+
+    # Prepare the full message with context
+    if context:
+        full_message = f"{context}\n\nCurrent message: {user_text}"
+    else:
+        full_message = user_text
+
     result = await Runner.run(
         t1d_agent,
-        user_text,
-        context={"subject_id": subject_id},
+        full_message,
+        context={"subject_id": subject_id, "conversation_id": conversation.id},
     )
+
+    # Add assistant response to conversation
+    conversation_service.add_message(conversation.id, "assistant", result.final_output)
 
     # For now, ignore function-calls. You can inspect result.new_items later.
     tool_used = None
@@ -71,4 +98,5 @@ async def run_agent_async(subject_id: str, user_text: str) -> dict:
         "reply": result.final_output,
         "tool_used": None,
         "tool_result": None,
+        "conversation_id": conversation.id,
     }
