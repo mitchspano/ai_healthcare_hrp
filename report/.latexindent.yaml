@@ -1,0 +1,73 @@
+# latexindent configuration file
+# This file controls how latexindent formats your LaTeX files
+
+# Text wrapping settings
+textWrapOptions:
+  separator: " "
+  separatorOptional: 1
+  beforeToken: 1
+  beforeTokenComment: 1
+  afterToken: 1
+  afterTokenComment: 1
+  indentation: "  " # 2 spaces
+  maxLineLength: 80
+  removeParagraphLineBreaks: 1 # Changed to 1 to preserve line breaks
+  removeTrailingComments: 1
+  oneSentencePerLine: 1 # Changed to 1 to keep sentences on separate lines
+  wrapComments: 1
+  wrapCommentsAt: 80
+
+# Line break modification
+modifyLineBreaks:
+  textWrapOptions:
+    separator: " "
+    separatorOptional: 1
+    beforeToken: 1
+    beforeTokenComment: 1
+    afterToken: 1
+    afterTokenComment: 1
+    indentation: "  " # 2 spaces
+    maxLineLength: 80
+    removeParagraphLineBreaks: 1 # Changed to 1 to preserve line breaks
+    removeTrailingComments: 1
+    oneSentencePerLine: 1 # Changed to 1 to keep sentences on separate lines
+    wrapComments: 1
+    wrapCommentsAt: 80
+
+  # Environment formatting
+  environments:
+    BeginStartsOnOwnLine: 1
+    BodyStartsOnOwnLine: 1
+    EndStartsOnOwnLine: 1
+    EndFinishesWithLineBreak: 1
+
+  # Command formatting
+  commands:
+    BeginStartsOnOwnLine: 1
+    BodyStartsOnOwnLine: 1
+    EndStartsOnOwnLine: 1
+    EndFinishesWithLineBreak: 1
+
+  # Special handling for if-else-fi
+  ifElseFi:
+    IfStartsOnOwnLine: 1
+    ElseStartsOnOwnLine: 1
+    FiStartsOnOwnLine: 1
+    FiFinishesWithLineBreak: 1
+
+# Indentation settings
+indentPreamble: 1
+indentEnvironment: 1
+indentIfElseFi: 1
+indentWhileDoFor: 1
+indentBeforeCommand: 1
+indentAfterCommand: 1
+
+# Remove unnecessary blank lines
+removeTrailingWhitespace:
+  beforeProcessing: 1
+  afterProcessing: 1
+
+# Additional line break preservation settings
+preserveBlankLines: 1
+keepBlankLines: 1

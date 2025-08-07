@@ -188,10 +188,10 @@ python3 simple_model_usage.py
 
 ### **Model Performance**
 
-- **MARD**: ~24% (Mean Absolute Relative Difference)
-- **MAE**: ~5.8 mg/dL (Mean Absolute Error)
-- **RMSE**: ~8.8 mg/dL (Root Mean Square Error)
-- **Time-in-Range Accuracy**: ~94%
+- **MARD**: 18.60% (Mean Absolute Relative Difference)
+- **MAE**: 10.87 mg/dL (Mean Absolute Error)
+- **RMSE**: 16.70 mg/dL (Root Mean Square Error)
+- **Time-in-Range Accuracy**: 51.13%
 
 ## 📈 **Pipeline Stages**
 

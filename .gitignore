@@ -252,3 +252,54 @@ residual_analysis.png
 
 # dataset 
 AZT1D 2025/
+
+# ===== LaTeX COMPILATION FILES =====
+
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.idx
+*.ind
+*.ilg
+*.glo
+*.gls
+*.glg
+*.acn
+*.acr
+*.alg
+*.ist
+*.snm
+*.nav
+*.dvi
+*.xdv
+
+# LaTeX temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# LaTeX build directories
+build/
+latex.out/
+
+# LaTeX Workshop specific files
+.latexmk/
+latexmk/
+
+# Comment files (ACM template specific)
+comment.cut
+
+# LaTeX compilation artifacts
+*.auxlock
+*.synctex(busy)
+*.synctex.gz(busy)
