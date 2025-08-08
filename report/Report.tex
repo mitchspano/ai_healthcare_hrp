@@ -1,12 +1,16 @@
 \documentclass[acmsmall]{acmart}
 
-\AtBeginDocument{%
-  \providecommand\BibTeX{{%
-        Bib\TeX}}}
+% --- Remove copyright/permission block ---
+\settopmatter{printacmref=true} % enables ACM reference format as required
+\renewcommand\footnotetextcopyrightpermission[1]{} % suppresses the permission text
+\pagestyle{plain} % optional: removes running headers
 
-\setcopyright{acmlicensed}
-\copyrightyear{2025}
-\acmYear{2025}
+% --- Clear metadata so nothing extra prints ---
+\acmConference[]{}{}{}
+\acmBooktitle{}
+\acmPrice{}
+\acmDOI{}
+\acmISBN{}
 
 \title{AI-Powered Diabetes Management Agent: A Machine Learning Approach to Pediatric Type 1 Diabetes Care}
 
@@ -20,7 +24,7 @@
 }
 
 \author{Kerim Karabacak}
-\email{kerim.karabacak@utexas.edu}
+\email{kerimkarabacak@utexas.edu}
 \affiliation{%
   \institution{The University of Texas at Austin}
   \city{Austin}
@@ -30,28 +34,30 @@
 
 \renewcommand{\shortauthors}{Spano and Karabacak}
 
+\begin{document}
+
 \begin{abstract}
-  Type 1 Diabetes (T1D) management in pediatric populations presents unique challenges due to the complexity of glucose regulation and the need for continuous monitoring and intervention. This paper presents an AI-powered diabetes management agent that leverages LSTM neural networks to predict glucose levels and provide personalized recommendations for children with T1D. Our system integrates continuous glucose monitoring (CGM) data with meal information to create a comprehensive diabetes management platform. We evaluate our approach using the AZT1D dataset, achieving improved glucose prediction accuracy and demonstrating the potential for AI-assisted diabetes care in pediatric populations. The system provides real-time chat-based interactions, making diabetes management more accessible and engaging for young patients.
+Type 1 Diabetes (T1D) management in pediatric populations presents unique challenges due to the complexity of glucose regulation and the need for continuous monitoring and intervention. This paper presents an AI-powered diabetes management agent that leverages LSTM neural networks to predict glucose levels and provide personalized recommendations for children with T1D. Our system integrates continuous glucose monitoring (CGM) data with meal information to create a comprehensive diabetes management platform. We evaluate our approach using the AZT1D dataset, achieving improved glucose prediction accuracy and demonstrating the potential for AI-assisted diabetes care in pediatric populations. The system provides real-time chat-based interactions, making diabetes management more accessible and engaging for young patients.
 \end{abstract}
 
 \begin{CCSXML}
-  <ccs2012>
+<ccs2012>
   <concept>
-  <concept_id>10010147.10010257.10010293.10010294</concept_id>
-  <concept_desc>Computing methodologies~Machine learning~Machine learning approaches~Neural networks</concept_desc>
-  <concept_significance>500</concept_significance>
+    <concept_id>10010147.10010257.10010293.10010294</concept_id>
+    <concept_desc>Computing methodologies~Machine learning~Machine learning approaches~Neural networks</concept_desc>
+    <concept_significance>500</concept_significance>
   </concept>
   <concept>
-  <concept_id>10010405.10010444.10010447</concept_id>
-  <concept_desc>Applied computing~Health care information systems</concept_desc>
-  <concept_significance>300</concept_significance>
+    <concept_id>10010405.10010444.10010447</concept_id>
+    <concept_desc>Applied computing~Health care information systems</concept_desc>
+    <concept_significance>300</concept_significance>
   </concept>
   <concept>
-  <concept_id>10010147.10010257.10010293.10010297</concept_id>
-  <concept_desc>Computing methodologies~Machine learning~Machine learning approaches~Time series analysis</concept_desc>
-  <concept_significance>200</concept_significance>
+    <concept_id>10010147.10010257.10010293.10010297</concept_id>
+    <concept_desc>Computing methodologies~Machine learning~Machine learning approaches~Time series analysis</concept_desc>
+    <concept_significance>200</concept_significance>
   </concept>
-  </ccs2012>
+</ccs2012>
 \end{CCSXML}
 
 \ccsdesc[500]{Computing methodologies~Machine learning~Machine learning approaches~Neural networks}
@@ -59,8 +65,6 @@
 \ccsdesc[200]{Computing methodologies~Machine learning~Machine learning approaches~Time series analysis}
 
 \keywords{diabetes management, machine learning, LSTM, glucose prediction, pediatric healthcare, continuous glucose monitoring, AI agent}
-
-\begin{document}
 
 \maketitle
 
@@ -277,5 +281,12 @@ The success of this project highlights the potential for AI-assisted healthcare 
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
+
+% Ensure all citations are present in references.bib and used with \cite{}
+% Example:
+% \cite{Georga2013}
+% \cite{Zhu2019}
+% \cite{Cameron2018}
+% \cite{Bickmore2018}
 
 \end{document}
