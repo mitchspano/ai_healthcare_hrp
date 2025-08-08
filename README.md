@@ -117,3 +117,7 @@ python3 main.py --config configs/original_config.yaml --run
 ## Disclaimer
 
 This software is for research purposes only. It is not intended for clinical use or medical decision-making. Always consult with healthcare professionals for medical advice.
+
+## Development Note
+
+This project was generated with the assistance of Cursor, an AI-powered code editor.
